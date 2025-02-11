@@ -1,0 +1,14 @@
+{
+    "version": "1",
+    "branches": [
+        "*"
+    ],
+    "applications": [
+        {
+            "slug": "personal-data-app",
+            "description": "Personal data wallet for storage and identification",
+            "version": "0.0.1",
+            "rootDir": "/apps/personal-data-app"
+        }
+    ]
+}
