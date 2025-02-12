@@ -18,6 +18,12 @@ export class PushNotificationConfiguration {
 }
 
 @json
+export class ManageAdminInput {
+    email!: string;
+    task!: string; // add-admin | remove-admin | add-owner | remove-owner
+}
+
+@json
 export class PushNotificationUserConfiguration {
     token!: string;
     encryptionKey!: Uint8Array;
@@ -35,4 +41,5 @@ export class AdministrateInput {
     emailConfig: EmailConfiguration | null = null;
     verifyEmailTemplate: string | null = null;
     pushNotificationConfig: PushNotificationConfiguration | null = null;
+    manageAdmin: ManageAdminInput | null = null;
 }

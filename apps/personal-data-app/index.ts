@@ -2,7 +2,7 @@ import { Context, Notifier, Ledger, JSON, Crypto } from '@klave/sdk';
 import { TBLE_NAMES } from './config';
 import { ErrorMessage, AdministrateInput, EmailConfiguration, PushNotificationInput, PushNotificationConfiguration } from './types';
 import { User, UserData, UserDevice, UserRegisterInput, UserRegisterOutput } from './types/user-data';
-import { isAdmin } from './utils/administration';
+import { isAdmin, addAdmin, removeAdmin, addOwner, removeOwner, registerOwner } from './utils/administration';
 import { sendEmail } from './utils/email';
 import { pushNotif } from './utils/push-notifications';
 import * as Base64 from "as-base64/assembly";
@@ -153,13 +153,64 @@ export function administrate(input: AdministrateInput): void {
 
     // Verify access
     const user = User.getUserFromDevice(Context.get("sender"));
-    if (!user || !isAdmin(user.userId)) {
+    if (!user) {
+        Notifier.sendJson<ErrorMessage>({ success: false, message: `access denied` });
+        return;
+    }
+    if (!isAdmin(user.userId) && input.type != "register-owner") {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `access denied` });
         return;
     }
 
     // Run sub command
-    if (input.type == "set-auth-token-identity") {
+    if (input.type == "register-owner") {
+
+        if (!registerOwner(user.userId)) {
+            Notifier.sendJson<ErrorMessage>({ success: false, message: `can't register owner` });
+            return;
+        }
+    }
+    else if (input.type == "manage-admin") {
+
+        if (!input.manageAdmin || !input.manageAdmin!.email || !input.manageAdmin!.task) {
+            Notifier.sendJson<ErrorMessage>({ success: false, message: `incorrect arguments` });
+            return;
+        }
+        const userToManage = User.getUserFromEmail(input.manageAdmin!.email);
+        if (!userToManage) {
+            Notifier.sendJson<ErrorMessage>({ success: false, message: `user not found` });
+            return;
+        }
+        if (input.manageAdmin!.task == "add-admin") {
+            if (!addAdmin(user.userId, userToManage.userId)) {
+                Notifier.sendJson<ErrorMessage>({ success: false, message: `can't add` });
+                return;
+            }
+        }
+        else if (input.manageAdmin!.task == "remove-admin") {
+            if (!removeAdmin(user.userId, userToManage.userId)) {
+                Notifier.sendJson<ErrorMessage>({ success: false, message: `can't remove` });
+                return;
+            }
+        }
+        else if (input.manageAdmin!.task == "add-owner") {
+            if (!addAdmin(user.userId, userToManage.userId)) {
+                Notifier.sendJson<ErrorMessage>({ success: false, message: `can't add` });
+                return;
+            }
+        }
+        else if (input.manageAdmin!.task == "remove-owner") {
+            if (!removeOwner(user.userId, userToManage.userId)) {
+                Notifier.sendJson<ErrorMessage>({ success: false, message: `can't remove` });
+                return;
+            }
+        }
+        else {
+            Notifier.sendJson<ErrorMessage>({ success: false, message: `incorrect arguments` });
+            return;
+        }
+    }
+    else if (input.type == "set-auth-token-identity") {
 
         let keypair = Crypto.Subtle.generateKey({namedCurve: "P-256"} as Crypto.EcKeyGenParams, false, ["sign", "verify"]);
         let res = Crypto.Subtle.saveKey(keypair.data, "auth-token-identity");

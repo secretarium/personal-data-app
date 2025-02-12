@@ -76,7 +76,7 @@ export function removeOwner(ownerId: Uint8Array, removedOwnerId: Uint8Array): bo
     return manageUser(ownerId, removedOwnerId, "remove");
 }
 
-export function adddmin(ownerId: Uint8Array, newAdminId: Uint8Array): bool {
+export function addAdmin(ownerId: Uint8Array, newAdminId: Uint8Array): bool {
     return manageUser(ownerId, newAdminId, "admin");
 }
 
