@@ -1,5 +1,5 @@
 import { JSON, HTTP, HttpRequest, Crypto } from '@klave/sdk';
-import { PushNotificationConfiguration } from '../types';
+import { PushNotificationUserConfiguration } from '../types';
 import * as Base64 from "as-base64/assembly";
 
 @json
@@ -8,7 +8,7 @@ class ExpoPushNotificationObject {
     body!: string;
 }
 
-export function pushNotif(config: PushNotificationConfiguration, msg: string): bool {
+export function pushNotif(config: PushNotificationUserConfiguration, msg: string): bool {
 
     // Encrypt
     let aesKeyRes = Crypto.Subtle.importKey("raw", config.encryptionKey.buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);

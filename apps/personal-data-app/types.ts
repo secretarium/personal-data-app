@@ -13,7 +13,7 @@ export class EmailConfiguration {
 }
 
 @json
-export class PushNotificationConfiguration {
+export class PushNotificationUserConfiguration {
     token!: string;
     encryptionKey!: Uint8Array;
 }

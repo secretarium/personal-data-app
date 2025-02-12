@@ -1,6 +1,6 @@
 import { JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../config';
-import { PushNotificationConfiguration } from '../types';
+import { PushNotificationUserConfiguration } from '../types';
 import { LIST_DISPOSABLE_EMAIL_DOMAINS } from './disposable-email-list';
 import * as Base64 from "as-base64/assembly";
 
@@ -20,7 +20,7 @@ export class User {
     devicePublicKeyHash!: Uint8Array;
     seedTOTP!: Uint8Array;
     email!: UserVerifiableAttribute;
-    pushNotifCfg!: PushNotificationConfiguration;
+    pushNotifCfg!: PushNotificationUserConfiguration;
 
     static getUser(userId: Uint8Array): User | null {
 
@@ -66,7 +66,7 @@ export class UserDevice {
 }
 
 @json
-export class PushNotificationConfigurationInput {
+export class PushNotificationUserConfigurationInput {
     token!: string;
     encryptionKey!: string; // 16 bytes, base64 encoded
 }
@@ -76,7 +76,7 @@ export class UserRegisterInput {
 
     email!: string;
     deviceName!: string;
-    pushNotificationConfig!: PushNotificationConfigurationInput
+    pushNotificationConfig!: PushNotificationUserConfigurationInput
 
     verify(): bool {
 
