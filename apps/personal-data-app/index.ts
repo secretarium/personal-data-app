@@ -1,6 +1,6 @@
 import { Context, Notifier, Ledger, JSON, Crypto } from '@klave/sdk';
 import { TBLE_NAMES } from './config';
-import { ErrorMessage, AdministrateInput, EmailConfiguration, PushNotificationInput } from './types';
+import { ErrorMessage, AdministrateInput, EmailConfiguration, PushNotificationInput, PushNotificationConfiguration } from './types';
 import { User, UserData, UserDevice, UserRegisterInput, UserRegisterOutput } from './types/user-data';
 import { isAdmin } from './utils/administration';
 import { sendEmail } from './utils/email';
@@ -121,8 +121,16 @@ export function testPushNotification(input: PushNotificationInput): void {
         return;
     }
 
+    // Load push notification config
+    let confBytes = Ledger.getTable(TBLE_NAMES.ADMIN).get("PUSH_NOTIF_CONFIG");
+    if (confBytes.length != 0) {
+        Notifier.sendJson<ErrorMessage>({ success: false, message: `push notification configuation is missing` });
+        return;
+    }
+    let notifConf = JSON.parse<PushNotificationConfiguration>(confBytes);
+
     // Push notification
-    if (!pushNotif(user.pushNotifCfg, input.message)) {
+    if (!pushNotif(notifConf, user.pushNotifCfg, input.message)) {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `can't send push notification` });
         return;
     }
@@ -174,6 +182,14 @@ export function administrate(input: AdministrateInput): void {
             return;
         }
         Ledger.getTable(TBLE_NAMES.ADMIN).set("VERIFY_EMAIL_TEMPLATE", input.verifyEmailTemplate!);
+    }
+    else if (input.type == "set-push-notif-configuration") {
+
+        if (!input.pushNotificationConfig) {
+            Notifier.sendJson<ErrorMessage>({ success: false, message: `incorrect arguments` });
+            return;
+        }
+        Ledger.getTable(TBLE_NAMES.ADMIN).set("PUSH_NOTIF_CONFIG", JSON.stringify<PushNotificationConfiguration>(input.pushNotificationConfig!));
     }
     else {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `invalid arg 'type'` });

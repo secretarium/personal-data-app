@@ -13,6 +13,11 @@ export class EmailConfiguration {
 }
 
 @json
+export class PushNotificationConfiguration {
+    bearerToken!: string;
+}
+
+@json
 export class PushNotificationUserConfiguration {
     token!: string;
     encryptionKey!: Uint8Array;
@@ -29,4 +34,5 @@ export class AdministrateInput {
     type!: string;
     emailConfig: EmailConfiguration | null = null;
     verifyEmailTemplate: string | null = null;
+    pushNotificationConfig: PushNotificationConfiguration | null = null;
 }

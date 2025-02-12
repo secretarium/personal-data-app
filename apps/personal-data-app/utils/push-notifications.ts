@@ -1,5 +1,5 @@
 import { JSON, HTTP, HttpRequest, Crypto } from '@klave/sdk';
-import { PushNotificationUserConfiguration } from '../types';
+import { PushNotificationConfiguration, PushNotificationUserConfiguration } from '../types';
 import * as Base64 from "as-base64/assembly";
 
 @json
@@ -8,10 +8,10 @@ class ExpoPushNotificationObject {
     body!: string;
 }
 
-export function pushNotif(config: PushNotificationUserConfiguration, msg: string): bool {
+export function pushNotif(config: PushNotificationConfiguration, userCfg: PushNotificationUserConfiguration, msg: string): bool {
 
     // Encrypt
-    let aesKeyRes = Crypto.Subtle.importKey("raw", config.encryptionKey.buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);
+    let aesKeyRes = Crypto.Subtle.importKey("raw", userCfg.encryptionKey.buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);
     if (!aesKeyRes.data)
         return false;
     let aesKey = aesKeyRes.data as Crypto.CryptoKey;
@@ -34,8 +34,12 @@ export function pushNotif(config: PushNotificationUserConfiguration, msg: string
         path: '/push',
         method: 'POST',
         version: 'HTTP/1.1',
-        headers: [['Content-Type', 'application/json'], ['Accept', 'application/json']],
-        body: JSON.stringify<ExpoPushNotificationObject>({ to: config.token, body: body })
+        headers: [
+            ['Content-Type', 'application/json'],
+            ['Accept', 'application/json'],
+            ['Authorization', `Bearer ${config.bearerToken}`]
+        ],
+        body: JSON.stringify<ExpoPushNotificationObject>({ to: userCfg.token, body: body })
     };
     const pushResp = HTTP.request(pushReq);
     if (!pushResp || !pushResp.statusCode)
