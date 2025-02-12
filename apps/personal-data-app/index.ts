@@ -99,6 +99,7 @@ export function emailChallenge(): void {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `email template not configured` });
         return;
     }
+    emailTemplate.replace("${challenge}", user.email.challenge);
     if (!sendEmail(emailConf, user.email.value, "Secretarium email verification", emailTemplate)) {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `can't send email` });
         return;
