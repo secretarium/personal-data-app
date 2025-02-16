@@ -24,12 +24,6 @@ export class ManageAdminInput {
 }
 
 @json
-export class PushNotificationUserConfiguration {
-    token: string = "";
-    encryptionKey: string = ""; // base 64 encoded
-}
-
-@json
 export class PushNotificationInput {
     message!: string;
     userEmail: string = "";

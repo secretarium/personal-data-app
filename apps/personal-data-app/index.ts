@@ -1,7 +1,7 @@
 import { Context, Notifier, Ledger, JSON, Crypto } from '@klave/sdk';
 import { TBLE_NAMES } from './config';
 import { ErrorMessage, AdministrateInput, EmailConfiguration, PushNotificationInput, PushNotificationConfiguration } from './types';
-import { User, UserData, UserDevice, UserRegisterInput, UserRegisterOutput } from './types/user-data';
+import { User, UserData, UserDevice, UserPushNotification, UserRegisterInput, UserRegisterOutput, UserTOTP } from './types/user-data';
 import { isAdmin, addAdmin, removeAdmin, addOwner, removeOwner, registerOwner } from './utils/administration';
 import { pushNotif } from './utils/push-notifications';
 import * as Base64 from "as-base64/assembly";
@@ -51,12 +51,6 @@ export function register(input: UserRegisterInput): void {
     user.userId = Base64.encode(userIdRnd);
     let devicePublicKeyHashB64 = Context.get("sender");
     user.devicePublicKeyHash = devicePublicKeyHashB64;
-    let seedTOTPRnd = Crypto.getRandomValues(32);
-    if (!seedTOTPRnd || seedTOTPRnd.length != 32) {
-        Notifier.sendJson<ErrorMessage>({ success: false, message: `unavailable random generator` });
-        return;
-    }
-    user.seedTOTP = Base64.encode(seedTOTPRnd);
     user.email.value = input.email;
     let emailChallengeRnd = Crypto.getRandomValues(8);
     if (!emailChallengeRnd || emailChallengeRnd.length != 8) {
@@ -65,10 +59,24 @@ export function register(input: UserRegisterInput): void {
     }
     let challengeHex = Hex.encode(emailChallengeRnd);
     user.email.challenge = challengeHex.substring(0, 8).toUpperCase();
-    user.pushNotifCfg.encryptionKey = input.pushNotificationConfig.encryptionKey;
-    user.pushNotifCfg.token = input.pushNotificationConfig.token;
     Ledger.getTable(TBLE_NAMES.USER).set(user.userId, JSON.stringify<User>(user));
     Ledger.getTable(TBLE_NAMES.USER_EMAIL).set(input.email, user.userId); // alias
+
+    // Register TOTP config
+    let seedTOTPRnd = Crypto.getRandomValues(32);
+    if (!seedTOTPRnd || seedTOTPRnd.length != 32) {
+        Notifier.sendJson<ErrorMessage>({ success: false, message: `unavailable random generator` });
+        return;
+    }
+    let userTotp = new UserTOTP();
+    userTotp.seed = Base64.encode(seedTOTPRnd);
+    Ledger.getTable(TBLE_NAMES.USER_TOTP).set(user.userId, JSON.stringify<UserTOTP>(userTotp));
+
+    // Register push notification config
+    let userPushNotif = new UserPushNotification();
+    userPushNotif.encryptionKey = input.pushNotificationConfig.encryptionKey;
+    userPushNotif.token = input.pushNotificationConfig.token;
+    Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).set(user.userId, JSON.stringify<UserPushNotification>(userPushNotif));
 
     // Register user data
     let userData = new UserData();
@@ -86,7 +94,7 @@ export function register(input: UserRegisterInput): void {
     Ledger.getTable(TBLE_NAMES.USER_DEVICE).set(user.userId, devicePublicKeyHashB64); // alias
 
     // Return
-    Notifier.sendJson<UserRegisterOutput>({ publicKeyHash: devicePublicKeyHashB64, seedTOTP: user.seedTOTP});
+    Notifier.sendJson<UserRegisterOutput>({ publicKeyHash: devicePublicKeyHashB64, seedTOTP: userTotp.seed});
 }
 
 /**
@@ -103,6 +111,14 @@ export function testPushNotification(input: PushNotificationInput): void {
         return;
     }
 
+    // Load user push notification config
+    let userNotifConfBytes = Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).get("PUSH_NOTIF_CONFIG");
+    if (userNotifConfBytes.length != 0) {
+        Notifier.sendJson<ErrorMessage>({ success: false, message: `user push notification configuation is missing` });
+        return;
+    }
+    let userNotifConf = JSON.parse<UserPushNotification>(userNotifConfBytes);
+
     // Load push notification config
     let confBytes = Ledger.getTable(TBLE_NAMES.ADMIN).get("PUSH_NOTIF_CONFIG");
     if (confBytes.length != 0) {
@@ -112,7 +128,7 @@ export function testPushNotification(input: PushNotificationInput): void {
     let notifConf = JSON.parse<PushNotificationConfiguration>(confBytes);
 
     // Push notification
-    if (!pushNotif(notifConf, user.pushNotifCfg, input.message)) {
+    if (!pushNotif(notifConf, userNotifConf, input.message)) {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `can't send push notification` });
         return;
     }

@@ -1,6 +1,5 @@
 import { JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../config';
-import { PushNotificationUserConfiguration } from '../types';
 import { LIST_DISPOSABLE_EMAIL_DOMAINS } from './disposable-email-list';
 import * as Base64 from "as-base64/assembly";
 
@@ -78,13 +77,25 @@ export class UserVerifiableAttribute {
     }
 }
 
+export enum UserAuthLevel {
+    none, email, totp
+}
+
 @json
 export class User {
     userId: string = ""; // base 64 encoded
     devicePublicKeyHash: string = ""; // base 64 encoded
-    seedTOTP: string = ""; // base 64 encoded
     email: UserVerifiableAttribute = new UserVerifiableAttribute;
-    pushNotifCfg: PushNotificationUserConfiguration = new PushNotificationUserConfiguration;
+
+    getAuthLevel(): UserAuthLevel {
+        let level: UserAuthLevel = UserAuthLevel.none;
+        if (this.email.verified)
+            level &= UserAuthLevel.email;
+        if (this.email.verified)
+            level &= UserAuthLevel.email;
+
+        return level;
+    }
 
     static getUser(userId: Uint8Array): User | null {
 
@@ -101,7 +112,7 @@ export class User {
         if (value.length == 0)
             return null;
 
-        return getUser(Uint8Array.wrap(String.UTF8.encode(value)));
+        return User.getUser(Uint8Array.wrap(String.UTF8.encode(value)));
     }
 
     static getUserFromEmail(email: string): User | null {
@@ -110,35 +121,22 @@ export class User {
         if (value.length == 0)
             return null;
 
-        return getUser(Uint8Array.wrap(String.UTF8.encode(value)));
+        return User.getUser(Uint8Array.wrap(String.UTF8.encode(value)));
     }
 }
 
-export function getUser(userId: Uint8Array): User | null {
-
-    let value = Ledger.getTable(TBLE_NAMES.USER).get(String.UTF8.decode(userId.buffer));
-    if (value.length == 0)
-        return null;
-
-    return JSON.parse<User>(value);
+@json
+export class UserTOTP {
+    seed: string = ""; // base 64 encoded
+    attempts: Array<u64> = new Array<u64>();
+    verified: bool = false;
+    lastVerificationTime: u64 = 0;
 }
 
-export function getUserFromDevice(devicePublicKeyHashB64: string): User | null {
-
-    let value = Ledger.getTable(TBLE_NAMES.DEVICE_USER).get(devicePublicKeyHashB64);
-    if (value.length == 0)
-        return null;
-
-    return getUser(Uint8Array.wrap(String.UTF8.encode(value)));
-}
-
-export function getUserFromEmail(email: string): User | null {
-
-    let value = Ledger.getTable(TBLE_NAMES.USER_EMAIL).get(email);
-    if (value.length == 0)
-        return null;
-
-    return getUser(Uint8Array.wrap(String.UTF8.encode(value)));
+@json
+export class UserPushNotification {
+    token: string = "";
+    encryptionKey: string = ""; // base 64 encoded
 }
 
 @json
@@ -157,17 +155,17 @@ export class UserDevice {
 }
 
 @json
-export class PushNotificationUserConfigurationInput {
-    token!: string;
-    encryptionKey!: string; // 16 bytes, base64 encoded
+export class UserPushNotificationInput {
+    token: string = "";
+    encryptionKey: string = ""; // 16 bytes, base64 encoded
 }
 
 @json
 export class UserRegisterInput {
 
-    email!: string;
-    deviceName!: string;
-    pushNotificationConfig!: PushNotificationUserConfigurationInput
+    email: string = "";
+    deviceName: string = "";
+    pushNotificationConfig: UserPushNotificationInput = new UserPushNotificationInput();
 
     verify(): bool {
 
@@ -203,6 +201,6 @@ export class UserRegisterInput {
 
 @json
 export class UserRegisterOutput {
-    publicKeyHash!: string; // base 64 encoded
-    seedTOTP!: string; // base 64 encoded
+    publicKeyHash: string = ""; // base 64 encoded
+    seedTOTP: string = ""; // base 64 encoded
 }
