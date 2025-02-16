@@ -11,7 +11,7 @@ class ExpoPushNotificationObject {
 export function pushNotif(config: PushNotificationConfiguration, userCfg: PushNotificationUserConfiguration, msg: string): bool {
 
     // Encrypt
-    let aesKeyRes = Crypto.Subtle.importKey("raw", userCfg.encryptionKey.buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);
+    let aesKeyRes = Crypto.Subtle.importKey("raw", Base64.decode(userCfg.encryptionKey).buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);
     if (!aesKeyRes.data)
         return false;
     let aesKey = aesKeyRes.data as Crypto.CryptoKey;

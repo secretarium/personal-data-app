@@ -3,10 +3,24 @@ import { TBLE_NAMES } from './config';
 import { ErrorMessage, AdministrateInput, EmailConfiguration, PushNotificationInput, PushNotificationConfiguration } from './types';
 import { User, UserData, UserDevice, UserRegisterInput, UserRegisterOutput } from './types/user-data';
 import { isAdmin, addAdmin, removeAdmin, addOwner, removeOwner, registerOwner } from './utils/administration';
-import { sendEmail } from './utils/email';
 import { pushNotif } from './utils/push-notifications';
 import * as Base64 from "as-base64/assembly";
-import * as Hex from "as-hex/assembly";
+import * as Hex from "./utils/hex-encoder";
+
+/**
+ * @query
+ **/
+export function me(): void {
+
+    // Load user
+    const user = User.getUserFromDevice(Context.get("sender"));
+    if (!user) {
+        Notifier.sendJson<ErrorMessage>({ success: false, message: `unkown device` });
+        return;
+    }
+
+    Notifier.sendJson<User>(user);
+}
 
 /**
  * @transaction
@@ -34,31 +48,32 @@ export function register(input: UserRegisterInput): void {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `unavailable random generator` });
         return;
     }
-    user.userId = userIdRnd;
-    let devicePublicKeyHashB64 = Context.get("sender"); // base 64 decode
-    user.devicePublicKeyHash = Base64.decode(devicePublicKeyHashB64);
+    user.userId = Base64.encode(userIdRnd);
+    let devicePublicKeyHashB64 = Context.get("sender");
+    user.devicePublicKeyHash = devicePublicKeyHashB64;
     let seedTOTPRnd = Crypto.getRandomValues(32);
     if (!seedTOTPRnd || seedTOTPRnd.length != 32) {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `unavailable random generator` });
         return;
     }
-    user.seedTOTP = seedTOTPRnd;
+    user.seedTOTP = Base64.encode(seedTOTPRnd);
     user.email.value = input.email;
     let emailChallengeRnd = Crypto.getRandomValues(8);
     if (!emailChallengeRnd || emailChallengeRnd.length != 8) {
         Notifier.sendJson<ErrorMessage>({ success: false, message: `unavailable random generator` });
         return;
     }
-    user.email.challenge = Hex.encode(String.UTF8.decode(emailChallengeRnd.buffer)).substring(0, 8);
-    user.pushNotifCfg.encryptionKey = Base64.decode(input.pushNotificationConfig.encryptionKey);
+    let challengeHex = Hex.encode(emailChallengeRnd);
+    user.email.challenge = challengeHex.substring(0, 8).toUpperCase();
+    user.pushNotifCfg.encryptionKey = input.pushNotificationConfig.encryptionKey;
     user.pushNotifCfg.token = input.pushNotificationConfig.token;
-    Ledger.getTable(TBLE_NAMES.USER).set(String.UTF8.decode(user.userId.buffer), JSON.stringify<User>(user));
-    Ledger.getTable(TBLE_NAMES.USER_EMAIL).set(input.email, String.UTF8.decode(user.userId.buffer)); // alias
+    Ledger.getTable(TBLE_NAMES.USER).set(user.userId, JSON.stringify<User>(user));
+    Ledger.getTable(TBLE_NAMES.USER_EMAIL).set(input.email, user.userId); // alias
 
     // Register user data
     let userData = new UserData();
     userData.attributes.set("mainEmail", input.email);
-    Ledger.getTable(TBLE_NAMES.USER_DATA).set(String.UTF8.decode(user.userId.buffer), JSON.stringify<UserData>(userData));
+    Ledger.getTable(TBLE_NAMES.USER_DATA).set(user.userId, JSON.stringify<UserData>(userData));
 
     // Register device
     let device = new UserDevice();
@@ -67,45 +82,11 @@ export function register(input: UserRegisterInput): void {
     device.time = u64.parse(Context.get("trusted_time"));
     device.name = input.deviceName;
     Ledger.getTable(TBLE_NAMES.DEVICE).set(devicePublicKeyHashB64, JSON.stringify<UserDevice>(device));
-    Ledger.getTable(TBLE_NAMES.DEVICE_USER).set(devicePublicKeyHashB64, String.UTF8.decode(user.userId.buffer)); // alias
-    Ledger.getTable(TBLE_NAMES.USER_DEVICE).set(String.UTF8.decode(user.userId.buffer), devicePublicKeyHashB64); // alias
+    Ledger.getTable(TBLE_NAMES.DEVICE_USER).set(devicePublicKeyHashB64, user.userId); // alias
+    Ledger.getTable(TBLE_NAMES.USER_DEVICE).set(user.userId, devicePublicKeyHashB64); // alias
 
     // Return
-    Notifier.sendJson<UserRegisterOutput>({ publicKeyHash: devicePublicKeyHashB64, seedTOTP: Base64.encode(user.seedTOTP)});
-    return;
-}
-
-/**
- * @query
- **/
-export function emailChallenge(): void {
-
-    // Load email
-    const user = User.getUserFromDevice(Context.get("sender"));
-    if (!user) {
-        Notifier.sendJson<ErrorMessage>({ success: false, message: `unkown device` });
-        return;
-    }
-
-    // Email challenge
-    let emailConfBytes = Ledger.getTable(TBLE_NAMES.ADMIN).get("EMAIL_CONFIG");
-    if (emailConfBytes.length != 0) {
-        Notifier.sendJson<ErrorMessage>({ success: false, message: `email server not configured` });
-        return;
-    }
-    let emailConf = JSON.parse<EmailConfiguration>(emailConfBytes);
-    let emailTemplate = Ledger.getTable(TBLE_NAMES.ADMIN).get("VERIFY_EMAIL_TEMPLATE");
-    if (emailTemplate.length != 0) {
-        Notifier.sendJson<ErrorMessage>({ success: false, message: `email template not configured` });
-        return;
-    }
-    emailTemplate.replace("${challenge}", user.email.challenge);
-    if (!sendEmail(emailConf, user.email.value, "Secretarium email verification", emailTemplate)) {
-        Notifier.sendJson<ErrorMessage>({ success: false, message: `can't send email` });
-        return;
-    }
-
-    Notifier.sendJson<ErrorMessage>({ success: true, message: `email sent` });
+    Notifier.sendJson<UserRegisterOutput>({ publicKeyHash: devicePublicKeyHashB64, seedTOTP: user.seedTOTP});
 }
 
 /**
@@ -194,7 +175,7 @@ export function administrate(input: AdministrateInput): void {
             }
         }
         else if (input.manageAdmin!.task == "add-owner") {
-            if (!addAdmin(user.userId, userToManage.userId)) {
+            if (!addOwner(user.userId, userToManage.userId)) {
                 Notifier.sendJson<ErrorMessage>({ success: false, message: `can't add` });
                 return;
             }
