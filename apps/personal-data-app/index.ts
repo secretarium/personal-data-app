@@ -19,7 +19,7 @@ export function me(): void {
         return;
     }
 
-    Notifier.sendJson<User>(user);
+    Notifier.sendJson<string>(user.email.value);
 }
 
 /**
