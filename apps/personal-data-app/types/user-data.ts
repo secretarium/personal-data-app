@@ -1,7 +1,10 @@
+// Copyright 2025 Secretarium Ltd <contact@secretarium.org>
+
 import { JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../config';
-import { LIST_DISPOSABLE_EMAIL_DOMAINS } from './disposable-email-list';
+import { checkEmailAddress } from '../src/email/helpers';
 import * as Base64 from "as-base64/assembly";
+
 
 export class ChallengeVerificationResult {
     success: bool = false;
@@ -134,12 +137,6 @@ export class UserTOTP {
 }
 
 @json
-export class UserPushNotification {
-    token: string = "";
-    encryptionKey: string = ""; // base 64 encoded
-}
-
-@json
 export class UserData {
     attributes: Map<string, string> = new Map<string, string>();
     verifiableAttributes: Map<string, UserVerifiableAttribute> = new Map<string, UserVerifiableAttribute>();
@@ -169,30 +166,18 @@ export class UserRegisterInput {
 
     verify(): bool {
 
-        // Check input (no regexp in AS 😢)
-        if (!this.email || this.email.length < 6 || this.email.includes(" ") || !this.email.includes("@"))
+        // Check email address
+        let emailCheck = checkEmailAddress(this.email);
+        if (!emailCheck.success)
             return false;
+        this.email = emailCheck.sanitisedEmail;
+
+        // Check other inputs
         if (!this.deviceName)
             return false;
         if (!this.pushNotificationConfig || !this.pushNotificationConfig.token)
             return false;
         if (!this.pushNotificationConfig.encryptionKey || Base64.decode(this.pushNotificationConfig.encryptionKey).length != 16)
-            return false;
-
-        // Sanitise email
-        const toSanitise= [ '<', '>', '"', '/', '\\', '=', '?', '#' ];
-        for (let i = 0; i < toSanitise.length; i++) {
-            this.email.replaceAll(toSanitise[i], "");
-        }
-        this.email.trim().toLowerCase();
-        if (this.email.length < 6)
-            return false;
-
-        // Check email domain is not in the list of disposable email services
-        let domain = this.email.split("@")[1];
-        if (!domain || domain.length < 4)
-            return false;
-        if (LIST_DISPOSABLE_EMAIL_DOMAINS.includes(domain))
             return false;
 
         return true;

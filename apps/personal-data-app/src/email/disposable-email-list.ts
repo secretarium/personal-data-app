@@ -1,3 +1,5 @@
+// Copyright 2025 Secretarium Ltd <contact@secretarium.org>
+
 export const LIST_DISPOSABLE_EMAIL_DOMAINS = [
     "0-mail.com",
     "0815.ru",

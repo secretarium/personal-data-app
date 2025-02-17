@@ -1,3 +1,6 @@
+// Copyright 2025 Secretarium Ltd <contact@secretarium.org>
+
+
 export function encode(data: Uint8Array) : string {
 
     let hex = "";

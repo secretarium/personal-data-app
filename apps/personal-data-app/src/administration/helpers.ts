@@ -1,11 +1,9 @@
-import { Ledger, Context, JSON } from '@klave/sdk';
-import { TBLE_NAMES } from '../config';
+// Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-@json
-class MemberRole {
-    role!: string;
-    date!: u64;
-}
+import { Ledger, Context, JSON } from '@klave/sdk';
+import { MemberRole } from './types';
+import { TBLE_NAMES } from '../../config';
+
 
 export function registerOwner(userId: string): bool {
 

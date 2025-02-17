@@ -1,15 +1,10 @@
+// Copyright 2025 Secretarium Ltd <contact@secretarium.org>
+
 import { JSON, HTTP, HttpRequest, Crypto } from '@klave/sdk';
-import { PushNotificationConfiguration } from '../types';
-import { UserPushNotification } from '../types/user-data';
+import { UserPushNotificationConfig, ExpoPushNotificationObject, PushNotificationServiceConfiguration } from './types';
 import * as Base64 from "as-base64/assembly";
 
-@json
-class ExpoPushNotificationObject {
-    to!: string;
-    body!: string;
-}
-
-export function pushNotif(config: PushNotificationConfiguration, userCfg: UserPushNotification, msg: string): bool {
+export function pushNotif(config: PushNotificationServiceConfiguration, userCfg: UserPushNotificationConfig, msg: string): bool {
 
     // Encrypt
     let aesKeyRes = Crypto.Subtle.importKey("raw", Base64.decode(userCfg.encryptionKey).buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);
