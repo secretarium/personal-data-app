@@ -1,11 +1,6 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
 @json
-export class EmailVerificationInput {
-    code: string = "";
-}
-
-@json
 export class EmailServiceConfiguration {
     applicationId!: string;
     clientSecret!: string;

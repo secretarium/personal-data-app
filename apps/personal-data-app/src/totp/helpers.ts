@@ -3,6 +3,7 @@
 import { Context, Crypto } from '@klave/sdk';
 import * as Base64 from "as-base64/assembly";
 
+
 export function computeCode(seed: Uint8Array, timeStep: u64, codeDigits: u32) : string {
 
     // Verify length
