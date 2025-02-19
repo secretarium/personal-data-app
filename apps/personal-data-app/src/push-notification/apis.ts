@@ -1,6 +1,6 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-import { JSON, Context, Notifier, Ledger } from '@klave/sdk';
+import { JSON, Ledger } from '@klave/sdk';
 import { UserPushNotificationConfig, PushNotificationInput, PushNotificationServiceConfiguration,  } from './types';
 import { TBLE_NAMES } from '../../config';
 import { pushNotif } from './helpers';

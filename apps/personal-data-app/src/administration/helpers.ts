@@ -1,11 +1,11 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-import { Ledger, Context, JSON } from '@klave/sdk';
+import { Ledger, JSON } from '@klave/sdk';
 import { MemberRole } from './types';
 import { TBLE_NAMES } from '../../config';
 
 
-export function registerOwner(userId: string): bool {
+export function registerOwner(userId: string, utcNow: u64): bool {
 
     // Check is admin is already set
     let value = Ledger.getTable(TBLE_NAMES.ADMIN).get("ADMINS");
@@ -14,7 +14,7 @@ export function registerOwner(userId: string): bool {
 
     // Create admin list and add user as owner
     let list = new Map<string, MemberRole>();
-    list.set(userId, { role: "owner", date: u64.parse(Context.get("trusted_time")) });
+    list.set(userId, { role: "owner", date: utcNow });
 
     // Save
     Ledger.getTable(TBLE_NAMES.ADMIN).set("ADMINS", JSON.stringify<Map<string, MemberRole>>(list));
@@ -35,7 +35,7 @@ export function isAdmin(userId: string): bool {
     return list.has(userId);
 }
 
-function manageUser(ownerId: string, userId: string, role: string): bool {
+function manageUser(ownerId: string, userId: string, role: string, utcNow: u64): bool {
 
     // Check inputs
     if (ownerId == userId)
@@ -59,25 +59,25 @@ function manageUser(ownerId: string, userId: string, role: string): bool {
     if (role == "remove")
         list.delete(userId);
     else
-        list.set(userId, { role: role, date: u64.parse(Context.get("trusted_time")) });
+        list.set(userId, { role: role, date: utcNow });
 
     // Save
     Ledger.getTable(TBLE_NAMES.ADMIN).set("ADMINS", JSON.stringify<Map<string, MemberRole>>(list));
     return true;
 }
 
-export function addOwner(ownerId: string, newOwnerId: string): bool {
-    return manageUser(ownerId, newOwnerId, "owner");
+export function addOwner(ownerId: string, newOwnerId: string, utcNow: u64): bool {
+    return manageUser(ownerId, newOwnerId, "owner", utcNow);
 }
 
-export function removeOwner(ownerId: string, removedOwnerId: string): bool {
-    return manageUser(ownerId, removedOwnerId, "remove");
+export function removeOwner(ownerId: string, removedOwnerId: string, utcNow: u64): bool {
+    return manageUser(ownerId, removedOwnerId, "remove", utcNow);
 }
 
-export function addAdmin(ownerId: string, newAdminId: string): bool {
-    return manageUser(ownerId, newAdminId, "admin");
+export function addAdmin(ownerId: string, newAdminId: string, utcNow: u64): bool {
+    return manageUser(ownerId, newAdminId, "admin", utcNow);
 }
 
-export function removeAdmin(ownerId: string, removedAdminId: string): bool {
-    return manageUser(ownerId, removedAdminId, "remove");
+export function removeAdmin(ownerId: string, removedAdminId: string, utcNow: u64): bool {
+    return manageUser(ownerId, removedAdminId, "remove", utcNow);
 }

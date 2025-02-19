@@ -1,6 +1,6 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-import { Context, Crypto } from '@klave/sdk';
+import { Crypto } from '@klave/sdk';
 import * as Base64 from "as-base64/assembly";
 
 
@@ -50,12 +50,11 @@ export function totpVerifyCodeWithStep(code: string, seed: Uint8Array, timeStep:
     return code == computedCode;
 }
 
-export function totpVerifyCode(code: string, seed: string) : bool
+export function totpVerifyCode(code: string, seed: string, utcNow: u64) : bool
 {
     if (code.length < 6 || code.length > 8)
         return false; // we do not allow short code sizes
 
-    let utcNow = u64.parse(Context.get("trusted_time"));
     let step30Sec = utcNow / 30000000000;
     let seedBytes = Base64.decode(seed);
 

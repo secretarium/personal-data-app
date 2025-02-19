@@ -11,6 +11,8 @@ import { UserVerifiableAttribute } from "./src/user/data/types";
 import { emailChallengeApi } from "./src/email/apis";
 import { ManageRecoveryFriendInput } from "./src/recovery/types";
 import { manageRecoveryFriendApi } from "./src/recovery/apis";
+import { AdministrateInput } from "./src/administration/types";
+import { administrateApi } from "./src/administration/apis";
 
 
 /**
@@ -68,5 +70,14 @@ export function emailChallenge(email: UserVerifiableAttribute): void {
  */
 export function manageRecoveryFriend(input: ManageRecoveryFriendInput): void {
     const result = manageRecoveryFriendApi(Context.get("sender"), input);
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ * @param {AdministrateInput} input - A parsed input argument
+ */
+export function administrate(input: AdministrateInput): void {
+    const result = administrateApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
     Notifier.sendJson(result);
 }
