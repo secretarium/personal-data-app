@@ -16,14 +16,14 @@ function getUserRecoveryConfig(userId: string): RecoveryConfig {
     return JSON.parse<RecoveryConfig>(value);
 }
 
-export function manageRecoveryFriendApi(devicePublicKeyHashB64: string, input: ManageRecoveryFriendInput): ApiOutcome {
+export function manageRecoveryFriendApi(deviceId: string, input: ManageRecoveryFriendInput): ApiOutcome {
 
     // Check input
     if (input.operation != "add" && input.operation != "remove")
         return ApiOutcome.Error(`invalid operation`);
 
     // Load user and user recovery config
-    const user = User.getUserFromDevice(devicePublicKeyHashB64);
+    const user = User.getUserFromDevice(deviceId);
     if (!user)
         return ApiOutcome.Error(`unkown device`);
     const userRecovCfg = getUserRecoveryConfig(user.userId);

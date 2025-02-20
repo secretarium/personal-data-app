@@ -13,6 +13,8 @@ import { ManageRecoveryFriendInput } from "./src/recovery/types";
 import { manageRecoveryFriendApi } from "./src/recovery/apis";
 import { AdministrateInput } from "./src/administration/types";
 import { administrateApi } from "./src/administration/apis";
+import { CreateTokenInput, VerifyTokenInput } from "./src/token/types";
+import { createTokenApi, verifyTokenApi } from "./src/token/apis";
 
 
 /**
@@ -79,5 +81,21 @@ export function manageRecoveryFriend(input: ManageRecoveryFriendInput): void {
  */
 export function administrate(input: AdministrateInput): void {
     const result = administrateApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    Notifier.sendJson(result);
+}
+
+/**
+ * @query
+ **/
+export function verifyToken(input: VerifyTokenInput): void {
+    const result = verifyTokenApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    Notifier.sendJson(result);
+}
+
+/**
+ * @query
+ **/
+export function createToken(input: CreateTokenInput): void {
+    const result = createTokenApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
     Notifier.sendJson(result);
 }

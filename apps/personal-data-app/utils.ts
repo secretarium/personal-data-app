@@ -1,5 +1,8 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
+import { JSON } from '@klave/sdk';
+import * as Base64 from "as-base64/assembly";
+
 
 export function hexEncode(data: Uint8Array) : string {
     let hex = "";
@@ -17,10 +20,21 @@ export function hexDecode(hex: string) : Uint8Array {
     return data;
 }
 
-export function removeItem<T>(arr: Array<T>, value: T): Array<T> {
+export function removeItem<T>(arr: Array<T>, value: T) : Array<T> {
     const index = arr.indexOf(value);
     if (index > -1) {
         arr.splice(index, 1);
     }
     return arr;
+}
+
+export function concatArrays(a: Uint8Array, b: Uint8Array) : Uint8Array {
+    let concat = new Uint8Array(a.length + b.length);
+    concat.set(a);
+    concat.set(b, a.length);
+    return concat;
+}
+
+export function base64Encode<T>(obj: T): string {
+    return Base64.encode(Uint8Array.wrap(String.UTF8.encode(JSON.stringify(obj))));
 }

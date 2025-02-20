@@ -5,14 +5,10 @@ import { UserVerifiableAttribute } from './data/types';
 import { TBLE_NAMES } from '../../config';
 
 
-export enum UserAuthLevel {
-    none, email, totp
-}
-
 @json
 export class User {
     userId: string = ""; // base 64 encoded
-    devicePublicKeyHash: string = ""; // base 64 encoded
+    deviceId: string = ""; // base 64 encoded
     email: UserVerifiableAttribute = new UserVerifiableAttribute;
 
     static getUser(userId: string): User | null {
@@ -24,9 +20,9 @@ export class User {
         return JSON.parse<User>(value);
     }
 
-    static getUserFromDevice(devicePublicKeyHashB64: string): User | null {
+    static getUserFromDevice(deviceId: string): User | null {
 
-        let value = Ledger.getTable(TBLE_NAMES.DEVICE_USER).get(devicePublicKeyHashB64);
+        let value = Ledger.getTable(TBLE_NAMES.DEVICE_USER).get(deviceId);
         if (value.length == 0)
             return null;
 
@@ -40,16 +36,5 @@ export class User {
             return null;
 
         return this.getUser(value);
-    }
-
-    getAuthLevel(): UserAuthLevel {
-
-        let level: UserAuthLevel = UserAuthLevel.none;
-        if (this.email.verified)
-            level &= UserAuthLevel.email;
-        if (this.email.verified)
-            level &= UserAuthLevel.email;
-
-        return level;
     }
 }

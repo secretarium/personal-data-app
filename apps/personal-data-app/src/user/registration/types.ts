@@ -21,7 +21,7 @@ export class RegistrationInput {
 @json
 export class RegistrationOutput {
     @omitnull()
-    devicePublicKeyHash: string | null = null; // base 64 encoded
+    deviceId: string | null = null; // base 64 encoded
     @omitnull()
     seedTOTP: string | null = null; // base 64 encoded
     @omitnull()
@@ -31,13 +31,13 @@ export class RegistrationOutput {
 @json
 export class RegisteringUser {
     userId: string = ""; // base 64 encoded
-    devicePublicKeyHash: string = ""; // base 64 encoded
+    deviceId: string = ""; // base 64 encoded
     email: UserVerifiableAttribute = new UserVerifiableAttribute;
     time: u64 = 0;
 
-    static getFromDevice(devicePublicKeyHashB64: string): RegisteringUser | null {
+    static getFromDevice(deviceId: string): RegisteringUser | null {
 
-        let value = Ledger.getTable(TBLE_NAMES.REGISTERING_USER).get(devicePublicKeyHashB64);
+        let value = Ledger.getTable(TBLE_NAMES.REGISTERING_USER).get(deviceId);
         if (value.length == 0)
             return null;
 

@@ -10,14 +10,14 @@ import { ApiOutcome } from '../../types';
 import { User } from '../user/types';
 
 
-export function administrateApi(devicePublicKeyHashB64: string, utcNow: u64, input: AdministrateInput): ApiOutcome {
+export function administrateApi(deviceId: string, utcNow: u64, input: AdministrateInput): ApiOutcome {
 
     // Verify input
     if (!input || !input.type)
         return ApiOutcome.Error(`incorrect arguments`);
 
     // Verify access
-    const user = User.getUserFromDevice(devicePublicKeyHashB64);
+    const user = User.getUserFromDevice(deviceId);
     if (!user)
         return ApiOutcome.Error(`access denied`);
     if (!isAdmin(user.userId) && input.type != "register-owner")

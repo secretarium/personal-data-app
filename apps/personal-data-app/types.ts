@@ -9,10 +9,11 @@ export class ApiOutcome {
     @omitnull()
     message: string | null = null;
 
-    static Error(message: string | null = null) : ApiOutcome {
+    static Error(message: string | null = null, errorCode: u64 = 0) : ApiOutcome {
 
         let outcome  = new ApiOutcome();
         outcome.message = message;
+        outcome.error = errorCode;
         return outcome;
     }
 
@@ -30,11 +31,12 @@ export class ApiResult<T> extends ApiOutcome {
     @omitnull()
     result: T | null = null;
 
-    static Error<T>(message: string | null = null, result: T | null = null, ) : ApiResult<T> {
+    static Error<T>(message: string | null = null, result: T | null = null, errorCode: u64 = 0) : ApiResult<T> {
 
         let outcome  = new ApiResult<T>();
         outcome.message = message;
         outcome.result = result;
+        outcome.error = errorCode;
         return outcome;
     }
 

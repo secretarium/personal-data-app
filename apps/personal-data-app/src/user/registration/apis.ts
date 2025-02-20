@@ -14,7 +14,7 @@ import { hexEncode } from '../../../utils';
 import * as Base64 from "as-base64/assembly";
 
 
-export function initialRegistrationApi(devicePublicKeyHashB64: string, utcNow: u64, input: InitialRegistrationInput): ApiOutcome {
+export function initialRegistrationApi(deviceId: string, utcNow: u64, input: InitialRegistrationInput): ApiOutcome {
 
     // Check and sanitise email address
     let emailCheck = checkEmailAddress(input.email);
@@ -28,7 +28,7 @@ export function initialRegistrationApi(devicePublicKeyHashB64: string, utcNow: u
         return ApiOutcome.Error(`email already registered`);
 
     // Check if device public key hash is already registered
-    let deviceBlob = Ledger.getTable(TBLE_NAMES.REGISTERING_USER).get(devicePublicKeyHashB64);
+    let deviceBlob = Ledger.getTable(TBLE_NAMES.REGISTERING_USER).get(deviceId);
     if (deviceBlob.length != 0)
         return ApiOutcome.Error(`device already registered`);
 
@@ -38,7 +38,7 @@ export function initialRegistrationApi(devicePublicKeyHashB64: string, utcNow: u
     if (!userIdRnd || userIdRnd.length != 32)
         return ApiOutcome.Error(`unavailable random generator`);
     user.userId = Base64.encode(userIdRnd);
-    user.devicePublicKeyHash = devicePublicKeyHashB64;
+    user.deviceId = deviceId;
     user.time = utcNow;
     user.email.value = input.email;
     let emailChallengeRnd = Crypto.getRandomValues(8);
@@ -46,12 +46,12 @@ export function initialRegistrationApi(devicePublicKeyHashB64: string, utcNow: u
         return ApiOutcome.Error(`unavailable random generator`);
     let challengeHex = hexEncode(emailChallengeRnd);
     user.email.challenge = challengeHex.substring(0, 8).toUpperCase();
-    Ledger.getTable(TBLE_NAMES.REGISTERING_USER).set(devicePublicKeyHashB64, JSON.stringify<RegisteringUser>(user));
+    Ledger.getTable(TBLE_NAMES.REGISTERING_USER).set(deviceId, JSON.stringify<RegisteringUser>(user));
 
     return ApiOutcome.Success(`registration accepted`);
 }
 
-export function registerApi(devicePublicKeyHashB64: string, utcNow: u64, input: RegistrationInput): ApiResult<RegistrationOutput> {
+export function registerApi(deviceId: string, utcNow: u64, input: RegistrationInput): ApiResult<RegistrationOutput> {
 
     // Verify inputs
     if (!input.deviceName)
@@ -62,7 +62,7 @@ export function registerApi(devicePublicKeyHashB64: string, utcNow: u64, input: 
         return ApiResult.Error<RegistrationOutput>(`invalid push notification encryption key`);
 
     // Load registering user
-    const registeringUser = RegisteringUser.getFromDevice(devicePublicKeyHashB64);
+    const registeringUser = RegisteringUser.getFromDevice(deviceId);
     if (!registeringUser)
         return ApiResult.Error<RegistrationOutput>(`unkown device`);
 
@@ -77,20 +77,20 @@ export function registerApi(devicePublicKeyHashB64: string, utcNow: u64, input: 
     // Return if failed attempt
     if (!verificationResult.success) {
         // Record the attempt
-        Ledger.getTable(TBLE_NAMES.REGISTERING_USER).set(devicePublicKeyHashB64, JSON.stringify<RegisteringUser>(registeringUser));
-        return ApiResult.Error<RegistrationOutput>(`invalid code`, { devicePublicKeyHash: null, seedTOTP: null, challengeState: verificationResult });
+        Ledger.getTable(TBLE_NAMES.REGISTERING_USER).set(deviceId, JSON.stringify<RegisteringUser>(registeringUser));
+        return ApiResult.Error<RegistrationOutput>(`invalid code`, { deviceId: null, seedTOTP: null, challengeState: verificationResult });
     }
 
     // Email is verified, we can create an account for this user
     let user = new User();
     user.userId = registeringUser.userId;
-    user.devicePublicKeyHash = devicePublicKeyHashB64;
+    user.deviceId = deviceId;
     user.email = registeringUser.email;
     Ledger.getTable(TBLE_NAMES.USER).set(user.userId, JSON.stringify<User>(user));
     Ledger.getTable(TBLE_NAMES.USER_EMAIL).set(user.email.value, user.userId); // alias
 
     // Remove user from registering tables
-    Ledger.getTable(TBLE_NAMES.REGISTERING_USER).unset(devicePublicKeyHashB64);
+    Ledger.getTable(TBLE_NAMES.REGISTERING_USER).unset(deviceId);
 
     // Register TOTP config
     let seedTOTPRnd = Crypto.getRandomValues(32);
@@ -114,14 +114,14 @@ export function registerApi(devicePublicKeyHashB64: string, utcNow: u64, input: 
 
     // Register device
     let device = new UserDevice();
-    device.publicKeyHash = devicePublicKeyHashB64;
+    device.publicKeyHash = deviceId;
     device.userId = user.userId;
     device.time = utcNow;
     device.name = input.deviceName;
-    Ledger.getTable(TBLE_NAMES.DEVICE).set(devicePublicKeyHashB64, JSON.stringify<UserDevice>(device));
-    Ledger.getTable(TBLE_NAMES.DEVICE_USER).set(devicePublicKeyHashB64, user.userId); // alias
-    Ledger.getTable(TBLE_NAMES.USER_DEVICE).set(user.userId, devicePublicKeyHashB64); // alias
+    Ledger.getTable(TBLE_NAMES.DEVICE).set(deviceId, JSON.stringify<UserDevice>(device));
+    Ledger.getTable(TBLE_NAMES.DEVICE_USER).set(deviceId, user.userId); // alias
+    Ledger.getTable(TBLE_NAMES.USER_DEVICE).set(user.userId, deviceId); // alias
 
     // Return
-    return ApiResult.Success<RegistrationOutput>({ devicePublicKeyHash: devicePublicKeyHashB64, seedTOTP: userTotp.seed, challengeState: null });
+    return ApiResult.Success<RegistrationOutput>({ deviceId: deviceId, seedTOTP: userTotp.seed, challengeState: null });
 }

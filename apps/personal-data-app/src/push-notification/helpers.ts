@@ -2,6 +2,7 @@
 
 import { JSON, HTTP, HttpRequest, Crypto } from '@klave/sdk';
 import { UserPushNotificationConfig, ExpoPushNotificationObject, PushNotificationServiceConfiguration } from './types';
+import { concatArrays } from '../../utils';
 import * as Base64 from "as-base64/assembly";
 
 export function pushNotif(config: PushNotificationServiceConfiguration, userCfg: UserPushNotificationConfig, msg: string): bool {
@@ -18,10 +19,7 @@ export function pushNotif(config: PushNotificationServiceConfiguration, userCfg:
     let encrypted = Crypto.Subtle.encrypt(aesGcmParams, aesKey, String.UTF8.encode(msg));
     if (!encrypted.data)
         return false;
-    let concat = new Uint8Array(iv.length + encrypted.data!.byteLength);
-    concat.set(iv!);
-    concat.set(Uint8Array.wrap(encrypted.data!), iv.length);
-    let body = Base64.encode(concat);
+    let body = Base64.encode(concatArrays(iv!, Uint8Array.wrap(encrypted.data!)));
 
     // Call API
     const pushReq: HttpRequest = {

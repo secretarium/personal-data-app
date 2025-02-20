@@ -1,25 +1,45 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-import { JSON } from '@klave/sdk';
-
 
 @json
-export class Token {
-    version: u32 = 0;
-    nonce!: Uint8Array;
-    userVendorId!: string;
+export class VerifyTokenInput {
+    token: string = "";
+    vendorId: string = "";
 }
 
 @json
-export class TokenJwtHead /* following the JWT standard */ {
+export class CreateTokenInput {
+    vendorId: string = "";
+    lifespan: u64 = 0;
+}
+
+@json
+export class AuthToken {
+    version: u32 = 0;
+    nonce: string = "";
+    userVendorId: string = "";
+}
+
+@json
+export class AuthTokenJwtHeader /* following the JWT standard */ {
     alg: string = "ES256";
     typ: string = "JWT";
 }
 
 @json
-export class TokenJwtBody /* following the JWT standard */ {
+export class AuthTokenJwtPayload /* following the JWT standard */ {
     iss: string = "secretarium.id";
-    sub: string = "JWT";
-    iat: string = "JWT";
-    auths!: string[];
+    sub: string = ""; // user vendor id
+    @omitif("this.iat == 0")
+    iat: u64 = 0; // issue at time
+    @omitif("this.exp == 0")
+    exp: u64 = 0; // expiry
+    //auths: Set<string> = new Set<string>();
+}
+
+@json
+export class AuthTokenJwt {
+    header: AuthTokenJwtHeader = new AuthTokenJwtHeader();
+    payload: AuthTokenJwtPayload = new AuthTokenJwtPayload();
+    signature: string = "";
 }

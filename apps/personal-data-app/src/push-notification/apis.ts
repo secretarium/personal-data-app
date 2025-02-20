@@ -8,12 +8,12 @@ import { User } from '../user/types';
 import { ApiOutcome } from '../../types';
 
 
-export function sendPushNotificationApi(devicePublicKeyHashB64: string, input: PushNotificationInput): ApiOutcome {
+export function sendPushNotificationApi(deviceId: string, input: PushNotificationInput): ApiOutcome {
 
     // Load user
     const user = input.userEmail
         ? User.getUserFromEmail(input.userEmail)
-        : User.getUserFromDevice(devicePublicKeyHashB64);
+        : User.getUserFromDevice(deviceId);
     if (!user)
         return ApiOutcome.Error(`unkown device`);
 
