@@ -3,7 +3,7 @@
 import { Ledger, JSON, Crypto } from '@klave/sdk';
 import { TBLE_NAMES } from '../../config';
 import { AdministrateInput } from './types';
-import { addAdmin, addOwner, isAdmin, registerOwner, removeAdmin, removeOwner } from './helpers';
+import { addAdmin, addOwner, isAdmin, manageEmailDisposableList, registerOwner, removeAdmin, removeOwner } from './helpers';
 import { EmailServiceConfiguration } from '../email/types';
 import { PushNotificationServiceConfiguration } from '../push-notification/types';
 import { ApiOutcome } from '../../types';
@@ -85,6 +85,15 @@ export function administrateApi(deviceId: string, utcNow: u64, input: Administra
 
         Ledger.getTable(TBLE_NAMES.ADMIN).set("PUSH_NOTIF_CONFIG",
             JSON.stringify<PushNotificationServiceConfiguration>(input.pushNotificationConfig!));
+    }
+    else if (input.type == "manage-disposable-email-domains") {
+
+        if (!input.manageDisposableEmailList || !input.manageDisposableEmailList!.emails || !input.manageDisposableEmailList!.task)
+            return ApiOutcome.Error(`incorrect arguments`);
+        if (input.manageDisposableEmailList!.task != "add" && input.manageDisposableEmailList!.task != "remove")
+            return ApiOutcome.Error(`incorrect arguments`);
+
+        manageEmailDisposableList(input.manageDisposableEmailList!.emails, input.manageDisposableEmailList!.task);
     }
     else
         return ApiOutcome.Error(`invalid arg 'type'`);

@@ -1,8 +1,8 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-import { JSON, HTTP, HttpRequest } from '@klave/sdk';
-import { LIST_DISPOSABLE_EMAIL_DOMAINS } from './disposable-email-list';
+import { JSON, HTTP, HttpRequest, Ledger } from '@klave/sdk';
 import { CheckEmailAddressOutput, EmailServiceConfiguration, MicrosoftAuthResponse, MicrosoftEmailObject } from './types';
+import { TBLE_NAMES } from '../../config';
 
 export function sendEmail(config: EmailServiceConfiguration, address: string, subject: string, content: string): bool {
 
@@ -77,10 +77,14 @@ export function checkEmailAddress(email: string) : CheckEmailAddressOutput {
         return res;
     let domain = split[1];
     if (!domain || domain.length < 4)
-        return res
+        return res;
 
     // Check email domain is not in the list of disposable email services
-    if (LIST_DISPOSABLE_EMAIL_DOMAINS.includes(domain))
+    let disposableEmailDomainsBytes = Ledger.getTable(TBLE_NAMES.BLACKLIST).get("DISPOSABLE_EMAIL_DOMAINS");
+    if (disposableEmailDomainsBytes.length == 0)
+        return res;
+    let disposableEmailDomains = JSON.parse<Set<string>>(disposableEmailDomainsBytes);
+    if (disposableEmailDomains.has(domain))
         return res;
 
     // Return

@@ -13,4 +13,5 @@ export class TBLE_NAMES {
     static DEVICE_USER : string  = "DEVICE_USER";
     static RECOVERY_CONFIG : string  = "RECOVERY_CONFIG";
     static ADMIN : string  = "ADMIN";
+    static BLACKLIST : string  = "BLACKLIST";
 }

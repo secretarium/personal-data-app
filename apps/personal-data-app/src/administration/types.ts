@@ -11,12 +11,19 @@ export class ManageAdminInput {
 }
 
 @json
+export class ManageDisposableEmailListInput {
+    emails: Set<string> = new Set<string>();
+    task: string = ""; // add | remove
+}
+
+@json
 export class AdministrateInput {
     type!: string;
     emailConfig: EmailServiceConfiguration | null = null;
     verifyEmailTemplate: string | null = null;
     pushNotificationConfig: PushNotificationServiceConfiguration | null = null;
     manageAdmin: ManageAdminInput | null = null;
+    manageDisposableEmailList: ManageDisposableEmailListInput | null = null;
 }
 
 @json
