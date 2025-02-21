@@ -14,7 +14,7 @@ import { manageRecoveryFriendApi } from "./src/recovery/apis";
 import { AdministrateInput } from "./src/administration/types";
 import { administrateApi } from "./src/administration/apis";
 import { CreateTokenInput, VerifyTokenInput } from "./src/token/types";
-import { createTokenApi, verifyTokenApi } from "./src/token/apis";
+import { createTokenApi, getTokenIdentityApi, verifyTokenApi } from "./src/token/apis";
 
 
 /**
@@ -102,6 +102,14 @@ export function administrate(input: AdministrateInput): void {
     const result = administrateApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
     if (!result.success)
         Transaction.abort();
+    Notifier.sendJson(result);
+}
+
+/**
+ * @query
+ **/
+export function getTokenIdentity(): void {
+    const result = getTokenIdentityApi();
     Notifier.sendJson(result);
 }
 

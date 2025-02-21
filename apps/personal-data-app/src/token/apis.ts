@@ -5,7 +5,28 @@ import { ApiOutcome, ApiResult } from '../../types';
 import { CreateTokenInput, VerifyTokenInput } from './types';
 import { create, verify } from './helpers';
 import { User } from '../user/types';
+import * as Base64 from "as-base64/assembly";
 
+
+export function getTokenIdentityApi(): ApiOutcome {
+
+    // Load token identity
+    let tokenKey = Crypto.Subtle.loadKey("auth-token-identity");
+    if (!tokenKey.data)
+        return ApiOutcome.Error(`can load token identity, error: '${tokenKey.err!.message}'`);
+
+    // Get public key
+    let pubKey = Crypto.Subtle.getPublicKey(tokenKey.data);
+    if (!pubKey.data)
+        return ApiOutcome.Error(`can get token identity public key, error: '${pubKey.err!.message}'`);
+
+    // Export public key
+    let expKey = Crypto.Subtle.exportKey("raw", pubKey.data);
+    if (!expKey.data)
+        return ApiOutcome.Error(`can export the token identity public key, error: '${expKey.err!.message}'`);
+
+    return ApiOutcome.Success(Base64.encode(Uint8Array.wrap(expKey.data!)));
+}
 
 export function verifyTokenApi(deviceId: string, utcNow: u64, input: VerifyTokenInput): ApiOutcome {
 
