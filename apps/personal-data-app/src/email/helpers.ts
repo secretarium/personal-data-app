@@ -81,11 +81,11 @@ export function checkEmailAddress(email: string) : CheckEmailAddressOutput {
 
     // Check email domain is not in the list of disposable email services
     let disposableEmailDomainsBytes = Ledger.getTable(TBLE_NAMES.BLACKLIST).get("DISPOSABLE_EMAIL_DOMAINS");
-    if (disposableEmailDomainsBytes.length == 0)
-        return res;
-    let disposableEmailDomains = JSON.parse<Set<string>>(disposableEmailDomainsBytes);
-    if (disposableEmailDomains.has(domain))
-        return res;
+    if (disposableEmailDomainsBytes.length > 0) {
+        let disposableEmailDomains = JSON.parse<Set<string>>(disposableEmailDomainsBytes);
+        if (disposableEmailDomains.has(domain))
+            return res;
+    }
 
     // Return
     res.success = true;

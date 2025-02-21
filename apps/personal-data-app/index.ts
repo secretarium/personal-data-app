@@ -46,8 +46,10 @@ export function testPushNotification(input: PushNotificationInput): void {
  */
 export function initialRegistration(input: InitialRegistrationInput): void {
     const result = initialRegistrationApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
-    if (!result.success)
+    if (!result.success) {
         Transaction.abort();
+        Notifier.sendString("aborded");
+    }
     Notifier.sendJson(result);
 }
 
