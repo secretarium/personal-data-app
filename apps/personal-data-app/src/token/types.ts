@@ -9,7 +9,7 @@ export class VerifyTokenInput {
 
 @json
 export class CreateTokenInput {
-    vendorId: string = "";
+    vendorId: string = "secretarium.org";
     lifespan: u64 = 0;
 }
 
