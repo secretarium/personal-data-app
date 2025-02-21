@@ -5,22 +5,6 @@ import { MemberRole } from './types';
 import { TBLE_NAMES } from '../../config';
 
 
-export function registerOwner(userId: string, utcNow: u64): bool {
-
-    // Check is admin is already set
-    let value = Ledger.getTable(TBLE_NAMES.ADMIN).get("ADMINS");
-    if (value.length != 0)
-        return false;
-
-    // Create admin list and add user as owner
-    let list = new Map<string, MemberRole>();
-    list.set(userId, { role: "owner", date: utcNow });
-
-    // Save
-    Ledger.getTable(TBLE_NAMES.ADMIN).set("ADMINS", JSON.stringify<Map<string, MemberRole>>(list));
-    return true;
-}
-
 export function isAdmin(userId: string): bool {
 
     // Load admin list

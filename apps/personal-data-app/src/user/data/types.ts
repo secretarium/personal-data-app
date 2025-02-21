@@ -32,8 +32,16 @@ export class UserVerifiableAttribute {
         return this.attempts[this.attempts.length - 1] + lockedTime;
     }
 
-    verifyChallenge(nowUtcNs: u64, code: string) : ChallengeVerificationResult
-    {
+    setVerified(nowUtcNs: u64) : void {
+
+        this.attempts = new Array<u64>(); // empty array
+        this.lastVerificationTime = nowUtcNs;
+        this.verified = true;
+        this.verifiers.push("Secretarium");
+    }
+
+    verifyChallenge(nowUtcNs: u64, code: string) : ChallengeVerificationResult {
+
         let result = new ChallengeVerificationResult();
 
         // Check attempts state (if already beyond 3 attempts)
@@ -65,13 +73,9 @@ export class UserVerifiableAttribute {
         }
 
         // Challenge did verify! Let's clean the attempts and add/update the attestation
-        this.attempts = new Array<u64>(); // empty array
-        this.lastVerificationTime = nowUtcNs;
-        this.verified = true;
-        this.verifiers.push("Secretarium");
+        this.setVerified(nowUtcNs);
 
         result.success = true;
-
         return result;
     }
 }

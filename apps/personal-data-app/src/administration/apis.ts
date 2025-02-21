@@ -3,7 +3,7 @@
 import { Ledger, JSON, Crypto } from '@klave/sdk';
 import { TBLE_NAMES } from '../../config';
 import { AdministrateInput } from './types';
-import { addAdmin, addOwner, isAdmin, manageEmailDisposableList, registerOwner, removeAdmin, removeOwner } from './helpers';
+import { addAdmin, addOwner, isAdmin, manageEmailDisposableList, removeAdmin, removeOwner } from './helpers';
 import { EmailServiceConfiguration } from '../email/types';
 import { PushNotificationServiceConfiguration } from '../push-notification/types';
 import { ApiOutcome } from '../../types';
@@ -20,16 +20,11 @@ export function administrateApi(deviceId: string, utcNow: u64, input: Administra
     const user = User.getUserFromDevice(deviceId);
     if (!user)
         return ApiOutcome.Error(`access denied`);
-    if (!isAdmin(user.userId) && input.type != "register-owner")
+    if (!isAdmin(user.userId))
         return ApiOutcome.Error(`access denied`);
 
     // Run sub command
-    if (input.type == "register-owner") {
-
-        if (!registerOwner(user.userId, utcNow))
-            return ApiOutcome.Error(`can't register owner`);
-    }
-    else if (input.type == "manage-admin") {
+    if (input.type == "manage-admin") {
 
         if (!input.manageAdmin || !input.manageAdmin!.email || !input.manageAdmin!.task)
             return ApiOutcome.Error(`incorrect arguments`);

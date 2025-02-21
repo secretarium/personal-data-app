@@ -7,19 +7,28 @@ import { UserPushNotificationConfig } from '../../push-notification/types';
 
 
 @json
-export class InitialRegistrationInput {
+export class PreRegisterUserInput {
     email: string = "";
 }
 
 @json
-export class RegistrationInput {
-    emailChallenge: string = "";
+export class RegisterUserDeviceInput {
     deviceName: string = "";
     pushNotificationConfig: UserPushNotificationConfig = new UserPushNotificationConfig();
 }
 
 @json
-export class RegistrationOutput {
+export class RegisterUserInput extends RegisterUserDeviceInput {
+    emailChallenge: string = "";
+}
+
+@json
+export class RegisterOwnerInput extends RegisterUserDeviceInput {
+    email: string = "";
+}
+
+@json
+export class RegisterUserOutput {
     @omitnull()
     deviceId: string | null = null; // base 64 encoded
     @omitnull()

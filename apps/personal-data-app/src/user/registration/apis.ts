@@ -3,18 +3,16 @@
 import { Crypto, JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../../../config';
 import { ApiOutcome, ApiResult } from '../../../types';
-import { InitialRegistrationInput, RegisteringUser, RegistrationInput, RegistrationOutput } from './types';
+import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput, RegisteringUser, RegisterUserOutput } from './types';
 import { checkEmailAddress } from '../../email/helpers';
-import { User } from '../types';
-import { UserTOTP } from '../../totp/types';
-import { UserPushNotificationConfig } from '../../push-notification/types';
-import { UserData } from '../data/types';
-import { UserDevice } from '../device/types';
+import { UserVerifiableAttribute } from '../data/types';
 import { hexEncode } from '../../../utils';
+import { registerUser } from './helpers';
+import { MemberRole } from '../../administration/types';
 import * as Base64 from "as-base64/assembly";
 
 
-export function initialRegistrationApi(deviceId: string, utcNow: u64, input: InitialRegistrationInput): ApiOutcome {
+export function preRegisterUserApi(deviceId: string, utcNow: u64, input: PreRegisterUserInput): ApiOutcome {
 
     // Check and sanitise email address
     let emailCheck = checkEmailAddress(input.email);
@@ -51,25 +49,25 @@ export function initialRegistrationApi(deviceId: string, utcNow: u64, input: Ini
     return ApiOutcome.Success(`registration accepted`);
 }
 
-export function registerApi(deviceId: string, utcNow: u64, input: RegistrationInput): ApiResult<RegistrationOutput> {
+export function registerUserApi(deviceId: string, utcNow: u64, input: RegisterUserInput): ApiResult<RegisterUserOutput> {
 
     // Verify inputs
     if (!input.deviceName)
-        return ApiResult.Error<RegistrationOutput>(`missing device name`);
+        return ApiResult.Error<RegisterUserOutput>(`missing device name`);
     if (!input.pushNotificationConfig || !input.pushNotificationConfig.token)
-        return ApiResult.Error<RegistrationOutput>(`missing push notification config`);
+        return ApiResult.Error<RegisterUserOutput>(`missing push notification config`);
     if (!input.pushNotificationConfig.encryptionKey || Base64.decode(input.pushNotificationConfig.encryptionKey).length != 16)
-        return ApiResult.Error<RegistrationOutput>(`invalid push notification encryption key`);
+        return ApiResult.Error<RegisterUserOutput>(`invalid push notification encryption key`);
 
     // Load registering user
     const registeringUser = RegisteringUser.getFromDevice(deviceId);
     if (!registeringUser)
-        return ApiResult.Error<RegistrationOutput>(`unkown device`);
+        return ApiResult.Error<RegisterUserOutput>(`unkown device`);
 
     // Check if email is already used
     let userBlob = Ledger.getTable(TBLE_NAMES.USER_EMAIL).get(registeringUser.email.value);
     if (userBlob.length != 0)
-        return ApiResult.Error<RegistrationOutput>(`email already registered`);
+        return ApiResult.Error<RegisterUserOutput>(`email already registered`);
 
     // Validate email challenge
     let verificationResult = registeringUser.email.verifyChallenge(utcNow, input.emailChallenge);
@@ -78,50 +76,47 @@ export function registerApi(deviceId: string, utcNow: u64, input: RegistrationIn
     if (!verificationResult.success) {
         // Record the attempt
         Ledger.getTable(TBLE_NAMES.REGISTERING_USER).set(deviceId, JSON.stringify<RegisteringUser>(registeringUser));
-        return ApiResult.Error<RegistrationOutput>(`invalid code`, { deviceId: null, seedTOTP: null, challengeState: verificationResult });
+        let output = new RegisterUserOutput();
+        output.challengeState = verificationResult;
+        return ApiResult.Error<RegisterUserOutput>(`invalid code`, output);
     }
 
     // Email is verified, we can create an account for this user
-    let user = new User();
-    user.userId = registeringUser.userId;
-    user.deviceId = deviceId;
-    user.email = registeringUser.email;
-    Ledger.getTable(TBLE_NAMES.USER).set(user.userId, JSON.stringify<User>(user));
-    Ledger.getTable(TBLE_NAMES.USER_EMAIL).set(user.email.value, user.userId); // alias
+    let res = registerUser(registeringUser.userId, deviceId, registeringUser.email, input, utcNow);
 
     // Remove user from registering tables
-    Ledger.getTable(TBLE_NAMES.REGISTERING_USER).unset(deviceId);
+    if (res.success)
+        Ledger.getTable(TBLE_NAMES.REGISTERING_USER).unset(deviceId);
 
-    // Register TOTP config
-    let seedTOTPRnd = Crypto.getRandomValues(32);
-    if (!seedTOTPRnd || seedTOTPRnd.length != 32)
-        return ApiResult.Error<RegistrationOutput>(`unavailable random generator`);
+    return res;
+}
 
-    let userTotp = new UserTOTP();
-    userTotp.seed = Base64.encode(seedTOTPRnd);
-    Ledger.getTable(TBLE_NAMES.USER_TOTP).set(user.userId, JSON.stringify<UserTOTP>(userTotp));
+export function registerOwnerApi(deviceId: string, utcNow: u64, input: RegisterOwnerInput): ApiOutcome {
 
-    // Register push notification config
-    let userPushNotif = new UserPushNotificationConfig();
-    userPushNotif.encryptionKey = input.pushNotificationConfig.encryptionKey;
-    userPushNotif.token = input.pushNotificationConfig.token;
-    Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).set(user.userId, JSON.stringify<UserPushNotificationConfig>(userPushNotif));
+    // Check and sanitise email address
+    let emailCheck = checkEmailAddress(input.email);
+    if (!emailCheck.success)
+        return ApiOutcome.Error(`invalid email address`);
+    input.email = emailCheck.sanitisedEmail;
 
-    // Register user data
-    let userData = new UserData();
-    userData.attributes.set("mainEmail", user.email.value);
-    Ledger.getTable(TBLE_NAMES.USER_DATA).set(user.userId, JSON.stringify<UserData>(userData));
+    // Check if owner is already set
+    let value = Ledger.getTable(TBLE_NAMES.ADMIN).get("ADMINS");
+    if (value.length != 0)
+        return ApiOutcome.Error(`owner is already set`);
 
-    // Register device
-    let device = new UserDevice();
-    device.publicKeyHash = deviceId;
-    device.userId = user.userId;
-    device.time = utcNow;
-    device.name = input.deviceName;
-    Ledger.getTable(TBLE_NAMES.DEVICE).set(deviceId, JSON.stringify<UserDevice>(device));
-    Ledger.getTable(TBLE_NAMES.DEVICE_USER).set(deviceId, user.userId); // alias
-    Ledger.getTable(TBLE_NAMES.USER_DEVICE).set(user.userId, deviceId); // alias
+    // Create an account for the owner
+    let userIdRnd = Crypto.getRandomValues(32);
+    if (!userIdRnd || userIdRnd.length != 32)
+        return ApiOutcome.Error(`unavailable random generator`);
+    let userId = Base64.encode(userIdRnd);
+    let email = new UserVerifiableAttribute();
+    email.setVerified(utcNow); // Bypass email verification because smtp is not set yet
+    let res = registerUser(userId, deviceId, email, input, utcNow);
 
-    // Return
-    return ApiResult.Success<RegistrationOutput>({ deviceId: deviceId, seedTOTP: userTotp.seed, challengeState: null });
+    // Register as owner
+    let list = new Map<string, MemberRole>();
+    list.set(userId, { role: "owner", date: utcNow });
+    Ledger.getTable(TBLE_NAMES.ADMIN).set("ADMINS", JSON.stringify<Map<string, MemberRole>>(list));
+
+    return res;
 }

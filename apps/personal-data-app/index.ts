@@ -5,8 +5,8 @@ import { User } from "./src/user/types";
 import { ApiOutcome, ApiResult } from "./types";
 import { PushNotificationInput } from "./src/push-notification/types";
 import { sendPushNotificationApi } from "./src/push-notification/apis";
-import { InitialRegistrationInput, RegistrationInput } from "./src/user/registration/types";
-import { initialRegistrationApi, registerApi } from "./src/user/registration/apis";
+import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput } from "./src/user/registration/types";
+import { preRegisterUserApi, registerUserApi, registerOwnerApi } from "./src/user/registration/apis";
 import { UserVerifiableAttribute } from "./src/user/data/types";
 import { emailChallengeApi } from "./src/email/apis";
 import { ManageRecoveryFriendInput } from "./src/recovery/types";
@@ -42,10 +42,10 @@ export function testPushNotification(input: PushNotificationInput): void {
 
 /**
  * @transaction
- * @param {InitialRegistrationInput} input - A parsed input argument
+ * @param {PreRegisterUserInput} input - A parsed input argument
  */
-export function initialRegistration(input: InitialRegistrationInput): void {
-    const result = initialRegistrationApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+export function preRegister(input: PreRegisterUserInput): void {
+    const result = preRegisterUserApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
     if (!result.success) {
         Transaction.abort();
         Notifier.sendString("aborded");
@@ -55,10 +55,21 @@ export function initialRegistration(input: InitialRegistrationInput): void {
 
 /**
  * @transaction
- * @param {RegistrationInput} input - A parsed input argument
+ * @param {RegisterUserInput} input - A parsed input argument
  */
-export function register(input: RegistrationInput): void {
-    const result = registerApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+export function register(input: RegisterUserInput): void {
+    const result = registerUserApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ * @param {RegisterOwnerInput} input - A parsed input argument
+ */
+export function registerOwner(input: RegisterOwnerInput): void {
+    const result = registerOwnerApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
     if (!result.success)
         Transaction.abort();
     Notifier.sendJson(result);
