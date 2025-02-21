@@ -1,6 +1,6 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-import { Context, Notifier } from "@klave/sdk";
+import { Context, Notifier, Transaction } from "@klave/sdk";
 import { User } from "./src/user/types";
 import { ApiOutcome, ApiResult } from "./types";
 import { PushNotificationInput } from "./src/push-notification/types";
@@ -46,6 +46,8 @@ export function testPushNotification(input: PushNotificationInput): void {
  */
 export function initialRegistration(input: InitialRegistrationInput): void {
     const result = initialRegistrationApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
 
@@ -55,6 +57,8 @@ export function initialRegistration(input: InitialRegistrationInput): void {
  */
 export function register(input: RegistrationInput): void {
     const result = registerApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
 
@@ -72,6 +76,8 @@ export function emailChallenge(email: UserVerifiableAttribute): void {
  */
 export function manageRecoveryFriend(input: ManageRecoveryFriendInput): void {
     const result = manageRecoveryFriendApi(Context.get("sender"), input);
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
 
@@ -81,6 +87,8 @@ export function manageRecoveryFriend(input: ManageRecoveryFriendInput): void {
  */
 export function administrate(input: AdministrateInput): void {
     const result = administrateApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
 
