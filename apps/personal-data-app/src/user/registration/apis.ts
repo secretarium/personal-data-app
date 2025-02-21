@@ -91,23 +91,23 @@ export function registerUserApi(deviceId: string, utcNow: u64, input: RegisterUs
     return res;
 }
 
-export function registerOwnerApi(deviceId: string, utcNow: u64, input: RegisterOwnerInput): ApiOutcome {
+export function registerOwnerApi(deviceId: string, utcNow: u64, input: RegisterOwnerInput): ApiResult<RegisterUserOutput> {
 
     // Check and sanitise email address
     let emailCheck = checkEmailAddress(input.email);
     if (!emailCheck.success)
-        return ApiOutcome.Error(`invalid email address`);
+        return ApiResult.Error<RegisterUserOutput>(`invalid email address`);
     input.email = emailCheck.sanitisedEmail;
 
     // Check if owner is already set
     let value = Ledger.getTable(TBLE_NAMES.ADMIN).get("ADMINS");
     if (value.length != 0)
-        return ApiOutcome.Error(`owner is already set`);
+        return ApiResult.Error<RegisterUserOutput>(`owner is already set`);
 
     // Create an account for the owner
     let userIdRnd = Crypto.getRandomValues(32);
     if (!userIdRnd || userIdRnd.length != 32)
-        return ApiOutcome.Error(`unavailable random generator`);
+        return ApiResult.Error<RegisterUserOutput>(`unavailable random generator`);
     let userId = Base64.encode(userIdRnd);
     let email = new UserVerifiableAttribute();
     email.setVerified(utcNow); // Bypass email verification because smtp is not set yet
