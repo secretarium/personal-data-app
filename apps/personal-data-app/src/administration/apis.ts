@@ -55,6 +55,8 @@ export function administrateApi(deviceId: string, utcNow: u64, input: Administra
     else if (input.type == "set-auth-token-identity") {
 
         let keypair = Crypto.Subtle.generateKey({namedCurve: "P-256"} as Crypto.EcKeyGenParams, false, ["sign", "verify"]);
+        if (!keypair.data)
+            return ApiOutcome.Error(`can't create key, error: '${keypair.err!.message}'`);
         let res = Crypto.Subtle.saveKey(keypair.data, "auth-token-identity");
         if (res.err)
             return ApiOutcome.Error(`can't save key, error: '${res.err!.message}'`);
