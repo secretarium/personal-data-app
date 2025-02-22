@@ -3,7 +3,7 @@
 import { JSON, Crypto } from '@klave/sdk';
 import { ApiResult } from '../../types';
 import { AuthTokenJwtHeader, AuthTokenJwtPayload } from './types';
-import { base64Encode, concatArrays } from '../../utils';
+import { base64Encode, concatArrays, toUrlMode } from '../../utils';
 import * as Base64 from "as-base64/assembly";
 
 
@@ -56,7 +56,7 @@ export function create(userId: string, privateKey: Crypto.CryptoKey, vendorId: s
 
     // Create header
     let header = new AuthTokenJwtHeader();
-    let headerB64 = base64Encode(header);
+    let headerB64 = toUrlMode(base64Encode(header));
 
     // Create payload
     let payload = new AuthTokenJwtPayload();
@@ -64,7 +64,7 @@ export function create(userId: string, privateKey: Crypto.CryptoKey, vendorId: s
     payload.sub = computeUserVendorId(userId, vendorId);
     if (lifespan > 0)
         payload.exp = utcNow + lifespan;
-    let payloadB64 = base64Encode(payload);
+    let payloadB64 = base64Encode(payload, true);
 
     // Sign
     let data = headerB64 + "." + payloadB64;
@@ -73,5 +73,5 @@ export function create(userId: string, privateKey: Crypto.CryptoKey, vendorId: s
     if (!signature.data)
         return ApiResult.Error<string>(`can't sign the token`);
 
-    return ApiResult.Success(data + "." + Base64.encode(Uint8Array.wrap(signature.data!)));
+    return ApiResult.Success(data + "." + toUrlMode(Base64.encode(Uint8Array.wrap(signature.data!))));
 }

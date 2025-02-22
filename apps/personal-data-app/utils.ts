@@ -35,6 +35,14 @@ export function concatArrays(a: Uint8Array, b: Uint8Array) : Uint8Array {
     return concat;
 }
 
-export function base64Encode<T>(obj: T): string {
-    return Base64.encode(Uint8Array.wrap(String.UTF8.encode(JSON.stringify(obj))));
+export function base64Encode<T>(obj: T, urlMode : boolean = false): string {
+    let b64 = Base64.encode(Uint8Array.wrap(String.UTF8.encode(JSON.stringify(obj))));
+    return urlMode ? toUrlMode(b64) : b64;
+}
+
+export function toUrlMode(base64: string): string {
+    base64 = base64.replaceAll("+", "-");
+    base64 = base64.replaceAll("/", "_");
+    base64 = base64.replaceAll("=", "");
+    return base64;
 }
