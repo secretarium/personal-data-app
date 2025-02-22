@@ -31,7 +31,7 @@ export function sendEmail(config: EmailServiceConfiguration, address: string, su
     const emailObj : MicrosoftEmailObject = {
         message: {
             subject: subject,
-            body: { contentType: 'Text', content: content },
+            body: { contentType: 'HTML', content: content },
             toRecipients: [ { emailAddress: { address: address } } ],
         },
         saveToSentItems: 'false'

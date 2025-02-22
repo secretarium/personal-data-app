@@ -7,7 +7,6 @@ import { PushNotificationInput } from "./src/push-notification/types";
 import { sendPushNotificationApi } from "./src/push-notification/apis";
 import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput } from "./src/user/registration/types";
 import { preRegisterUserApi, registerUserApi, registerOwnerApi } from "./src/user/registration/apis";
-import { UserVerifiableAttribute } from "./src/user/data/types";
 import { emailChallengeApi } from "./src/email/apis";
 import { ManageRecoveryFriendInput } from "./src/recovery/types";
 import { manageRecoveryFriendApi } from "./src/recovery/apis";
@@ -78,8 +77,8 @@ export function registerOwner(input: RegisterOwnerInput): void {
 /**
  * @query
  **/
-export function emailChallenge(email: UserVerifiableAttribute): void {
-    const result = emailChallengeApi(email);
+export function emailChallenge(): void {
+    const result = emailChallengeApi(Context.get("sender"));
     Notifier.sendJson(result);
 }
 
