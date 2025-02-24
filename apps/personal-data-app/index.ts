@@ -1,7 +1,7 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
 import { Context, Notifier, Transaction } from "@klave/sdk";
-import { getUserInfoApi, userDataMigrationApi } from "./src/user/apis";
+import { getUserInfoApi } from "./src/user/apis";
 import { PushNotificationInput } from "./src/push-notification/types";
 import { sendPushNotificationApi } from "./src/push-notification/apis";
 import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput } from "./src/user/registration/types";
@@ -14,7 +14,7 @@ import { administrateApi } from "./src/administration/apis";
 import { CreateTokenInput, VerifyTokenInput } from "./src/token/types";
 import { createTokenApi, getTokenIdentityApi, verifyTokenApi } from "./src/token/apis";
 import { AddDeviceInput, RemoveDeviceInput } from "./src/user/device/types";
-import { addUserDeviceApi, getUserDevicesApi, removeUserDeviceApi, userDeviceMigrationApi } from "./src/user/device/apis";
+import { addUserDeviceApi, getUserDevicesApi, removeUserDeviceApi } from "./src/user/device/apis";
 
 
 // USER APIs
@@ -173,23 +173,3 @@ export function testPushNotification(input: PushNotificationInput): void {
 
 
 // DATA MIGRATION APIs
-
-/**
- * @transaction
- */
-export function migrateUserDevice(): void {
-    const result = userDeviceMigrationApi(Context.get("sender"));
-    if (!result.success)
-        Transaction.abort();
-    Notifier.sendJson(result);
-}
-
-/**
- * @transaction
- */
-export function migrateUserData(): void {
-    const result = userDataMigrationApi(Context.get("sender"));
-    if (!result.success)
-        Transaction.abort();
-    Notifier.sendJson(result);
-}

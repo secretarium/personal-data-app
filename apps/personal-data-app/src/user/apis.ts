@@ -3,9 +3,8 @@
 import { JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../../config';
 import { User, UserInfoOutput } from './types';
-import { ApiOutcome, ApiResult } from '../../types';
+import { ApiResult } from '../../types';
 import { UserDevice } from './device/types';
-import { UserData } from './data/types';
 
 
 export function getUserInfoApi(deviceId: string): ApiResult<UserInfoOutput> {
@@ -23,25 +22,9 @@ export function getUserInfoApi(deviceId: string): ApiResult<UserInfoOutput> {
 
     // Prepare result
     let userInfo = new UserInfoOutput();
-    userInfo.email = user.email;
-    userInfo.device = device
+    userInfo.email = user.email.toUserVerifiableAttribute();
+    userInfo.device = device;
 
     // Return
     return ApiResult.Success(userInfo);
-}
-
-export function userDataMigrationApi(deviceId: string): ApiOutcome {
-
-    // Load user
-    const user = User.getUserFromDevice(deviceId);
-    if (!user)
-        return ApiOutcome.Error(`unkown device`);
-
-    // Register user data
-    let userData = new UserData();
-    userData.verifiableAttributes.set("mainEmail", user.email);
-    Ledger.getTable(TBLE_NAMES.USER_DATA).set(user.userId, JSON.stringify<UserData>(userData));
-
-    // Return
-    return ApiOutcome.Success(`success`);
 }

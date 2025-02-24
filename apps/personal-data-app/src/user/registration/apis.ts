@@ -5,7 +5,7 @@ import { TBLE_NAMES } from '../../../config';
 import { ApiOutcome, ApiResult } from '../../../types';
 import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput, RegisteringUser, RegisterUserOutput } from './types';
 import { checkEmailAddress } from '../../email/helpers';
-import { UserChallengeableAttribute } from '../data/types';
+import { UserChallengeableAttribute, UserData } from '../data/types';
 import { hexEncode } from '../../../utils';
 import { registerUser } from './helpers';
 import { MemberRole } from '../../administration/types';
@@ -110,6 +110,7 @@ export function registerOwnerApi(deviceId: string, utcNow: u64, input: RegisterO
         return ApiResult.Error<RegisterUserOutput>(`unavailable random generator`);
     let userId = Base64.encode(userIdRnd);
     let email = new UserChallengeableAttribute();
+    email.value = input.email;
     email.setVerified(utcNow); // Bypass email verification because smtp is not set yet
     let res = registerUser(userId, deviceId, email, input, utcNow);
 

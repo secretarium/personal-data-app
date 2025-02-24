@@ -82,6 +82,15 @@ export class UserChallengeableAttribute extends UserVerifiableAttribute {
         result.success = true;
         return result;
     }
+
+    toUserVerifiableAttribute() : UserVerifiableAttribute { // Upcasting does not work
+        let va = new UserVerifiableAttribute();
+        va.value = this.value;
+        va.verified = this.verified;
+        va.verifiers = this.verifiers;
+        va.lastVerificationTime = this.lastVerificationTime;
+        return va;
+    }
 }
 
 @json

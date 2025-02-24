@@ -73,32 +73,3 @@ export function removeUserDeviceApi(deviceId: string, input: RemoveDeviceInput):
     // Return
     return ApiOutcome.Success(`device removed`);
 }
-
-export function userDeviceMigrationApi(deviceId: string): ApiOutcome {
-
-    // Load user
-    const user = User.getUserFromDevice(deviceId);
-    if (!user)
-        return ApiOutcome.Error(`unkown device`);
-
-    // Load user device
-    let userDeviceId = Ledger.getTable(TBLE_NAMES.USER_DEVICE).get(user.userId);
-    if (userDeviceId.length == 0)
-        return ApiOutcome.Success(`nothing to migrate`);
-
-    // Update device (remove userId field)
-    let deviceBlob = Ledger.getTable(TBLE_NAMES.DEVICE).get(userDeviceId);
-    if (deviceBlob.length == 0)
-        return ApiOutcome.Error(`can't load device data`);
-    let device = JSON.parse<UserDevice>(deviceBlob);
-    Ledger.getTable(TBLE_NAMES.DEVICE).set(userDeviceId, JSON.stringify<UserDevice>(device));
-
-    // Remove entry
-    Ledger.getTable(TBLE_NAMES.USER_DEVICE).unset(user.userId);
-
-    // Register with new format
-    Ledger.getTable(TBLE_NAMES.USER_DEVICES).set(user.userId, JSON.stringify<Array<string>>([userDeviceId]));
-
-    // Return
-    return ApiOutcome.Success(`success`);
-}
