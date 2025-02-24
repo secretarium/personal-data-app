@@ -2,7 +2,7 @@
 
 import { Crypto, JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../../../config';
-import { ApiResult } from '../../../types';
+import { ApiOutcome, ApiResult } from '../../../types';
 import { RegisterUserDeviceInput, RegisterUserOutput } from './types';
 import { User } from '../types';
 import { UserTOTP } from '../../totp/types';
@@ -52,7 +52,7 @@ export function registerUser(
     device.name = input.deviceName;
     Ledger.getTable(TBLE_NAMES.DEVICE).set(deviceId, JSON.stringify<UserDevice>(device));
     Ledger.getTable(TBLE_NAMES.DEVICE_USER).set(deviceId, userId); // alias
-    Ledger.getTable(TBLE_NAMES.USER_DEVICE).set(userId, deviceId); // alias
+    Ledger.getTable(TBLE_NAMES.USER_DEVICES).set(userId, JSON.stringify<Array<string>>([deviceId])); // User devices
 
     // Return
     return ApiResult.Success<RegisterUserOutput>({ deviceId: deviceId, seedTOTP: userTotp.seed, challengeState: null });

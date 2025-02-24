@@ -14,6 +14,8 @@ import { AdministrateInput } from "./src/administration/types";
 import { administrateApi } from "./src/administration/apis";
 import { CreateTokenInput, VerifyTokenInput } from "./src/token/types";
 import { createTokenApi, getTokenIdentityApi, verifyTokenApi } from "./src/token/apis";
+import { AddDeviceInput, RemoveDeviceInput } from "./src/user/device/types";
+import { addUserDeviceApi, getUserDevicesApi, removeUserDeviceApi, userDeviceMigrationApi } from "./src/user/device/apis";
 
 
 /**
@@ -31,13 +33,9 @@ export function me(): void {
     Notifier.sendJson(ApiResult.Success(user.email.value));
 }
 
-/**
- * @query
- **/
-export function testPushNotification(input: PushNotificationInput): void {
-    const result = sendPushNotificationApi(Context.get("sender"), input);
-    Notifier.sendJson(result);
-}
+
+
+// REGISTRATION APIs
 
 /**
  * @transaction
@@ -45,10 +43,8 @@ export function testPushNotification(input: PushNotificationInput): void {
  */
 export function preRegister(input: PreRegisterUserInput): void {
     const result = preRegisterUserApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
-    if (!result.success) {
+    if (!result.success)
         Transaction.abort();
-        Notifier.sendString("aborded");
-    }
     Notifier.sendJson(result);
 }
 
@@ -82,6 +78,10 @@ export function emailChallenge(): void {
     Notifier.sendJson(result);
 }
 
+
+
+// RECOVERY APIs
+
 /**
  * @transaction
  * @param {ManageRecoveryFriendInput} input - A parsed input argument
@@ -93,6 +93,10 @@ export function manageRecoveryFriend(input: ManageRecoveryFriendInput): void {
     Notifier.sendJson(result);
 }
 
+
+
+// MANAGEMENT APIs
+
 /**
  * @transaction
  * @param {AdministrateInput} input - A parsed input argument
@@ -103,6 +107,10 @@ export function administrate(input: AdministrateInput): void {
         Transaction.abort();
     Notifier.sendJson(result);
 }
+
+
+
+// TOKEN APIs
 
 /**
  * @query
@@ -125,5 +133,66 @@ export function verifyToken(input: VerifyTokenInput): void {
  **/
 export function createToken(input: CreateTokenInput): void {
     const result = createTokenApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    Notifier.sendJson(result);
+}
+
+
+
+// DEVICES APIs
+
+
+/**
+ * @query
+ **/
+export function getDevices(): void {
+    const result = getUserDevicesApi(Context.get("sender"));
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ * @param {AddDeviceInput} input - A parsed input argument
+ */
+export function addDevice(input: AddDeviceInput): void {
+    const result = addUserDeviceApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ * @param {RemoveDeviceInput} input - A parsed input argument
+ */
+export function removeDevice(input: RemoveDeviceInput): void {
+    const result = removeUserDeviceApi(Context.get("sender"), input);
+    if (!result.success)
+        Transaction.abort();
+    Notifier.sendJson(result);
+}
+
+
+
+// TEST APIs
+
+/**
+ * @query
+ **/
+export function testPushNotification(input: PushNotificationInput): void {
+    const result = sendPushNotificationApi(Context.get("sender"), input);
+    Notifier.sendJson(result);
+}
+
+
+
+// DATA MIGRATION APIs
+
+/**
+ * @transaction
+ */
+export function migrateUserDevice(): void {
+    const result = userDeviceMigrationApi(Context.get("sender"));
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
