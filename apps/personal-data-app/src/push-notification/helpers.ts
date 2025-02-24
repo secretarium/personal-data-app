@@ -1,24 +1,26 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-import { JSON, HTTP, HttpRequest, Crypto } from '@klave/sdk';
+import { JSON, HTTP, HttpRequest, Crypto, Ledger } from '@klave/sdk';
+import { TBLE_NAMES } from '../../config';
 import { UserPushNotificationConfig, ExpoPushNotificationObject, PushNotificationServiceConfiguration } from './types';
 import { concatArrays } from '../../utils';
+import { ApiOutcome } from '../../types';
 import * as Base64 from "as-base64/assembly";
 
-export function pushNotif(config: PushNotificationServiceConfiguration, userCfg: UserPushNotificationConfig, msg: string): bool {
+export function pushNotif(config: PushNotificationServiceConfiguration, userCfg: UserPushNotificationConfig, msg: string): ApiOutcome {
 
     // Encrypt
     let aesKeyRes = Crypto.Subtle.importKey("raw", Base64.decode(userCfg.encryptionKey).buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);
     if (!aesKeyRes.data)
-        return false;
+        return ApiOutcome.Error(`invalid encryption key`);
     let aesKey = aesKeyRes.data as Crypto.CryptoKey;
     let iv = Crypto.getRandomValues(12);
     if (!iv)
-        return false;
+        return ApiOutcome.Error(`can't generate random`);
     let aesGcmParams = {iv : iv.buffer, additionalData : new ArrayBuffer(0), tagLength : 128} as Crypto.AesGcmParams;
     let encrypted = Crypto.Subtle.encrypt(aesGcmParams, aesKey, String.UTF8.encode(msg));
     if (!encrypted.data)
-        return false;
+        return ApiOutcome.Error(`can't encrypt the message`);
     let body = Base64.encode(concatArrays(iv!, Uint8Array.wrap(encrypted.data!)));
 
     // Call API
@@ -36,8 +38,26 @@ export function pushNotif(config: PushNotificationServiceConfiguration, userCfg:
         body: JSON.stringify<ExpoPushNotificationObject>({ to: userCfg.token, body: body })
     };
     const pushResp = HTTP.request(pushReq);
-    if (!pushResp || !pushResp.statusCode)
-        return false;
+    if (!pushResp || !pushResp.statusCode || pushResp.statusCode != 200)
+        return ApiOutcome.Error(`error while sending notification`);
 
-    return pushResp.statusCode == 200;
+    return ApiOutcome.Success(`user device succesfully notified`);
+}
+
+export function pushUserNotification(userId: string, message: string) : ApiOutcome {
+
+    // Load user push notification config
+    let userNotifConfBytes = Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).get(userId);
+    if (userNotifConfBytes.length != 0)
+        return ApiOutcome.Error(`user push notification configuation is missing`);
+    let userNotifConf = JSON.parse<UserPushNotificationConfig>(userNotifConfBytes);
+
+    // Load push notification config
+    let confBytes = Ledger.getTable(TBLE_NAMES.ADMIN).get("PUSH_NOTIF_CONFIG");
+    if (confBytes.length != 0)
+        return ApiOutcome.Error(`push notification configuation is missing`);
+    let notifConf = JSON.parse<PushNotificationServiceConfiguration>(confBytes);
+
+    // Push notification
+    return pushNotif(notifConf, userNotifConf, message);
 }

@@ -52,7 +52,12 @@ export function verify(jwtToken: string, publicKey: Crypto.CryptoKey, userId: st
     return ApiResult.Success<AuthTokenJwtPayload>(payload);
 }
 
-export function create(userId: string, privateKey: Crypto.CryptoKey, vendorId: string, utcNow: u64, lifespan: u64 = 0) : ApiResult<string> {
+export function create(userId: string, vendorId: string, utcNow: u64, lifespan: u64 = 0) : ApiResult<string> {
+
+    // Load token identity
+    let tokenKey = Crypto.Subtle.loadKey("auth-token-identity");
+    if (!tokenKey.data)
+        return ApiResult.Error<string>(`can load token identity`);
 
     // Create header
     let header = new AuthTokenJwtHeader();
@@ -69,7 +74,7 @@ export function create(userId: string, privateKey: Crypto.CryptoKey, vendorId: s
     // Sign
     let data = headerB64 + "." + payloadB64;
     let ecdsaParams = { hash: "SHA2-256" } as Crypto.EcdsaParams;
-    let signature = Crypto.Subtle.sign(ecdsaParams, privateKey, String.UTF8.encode(data));
+    let signature = Crypto.Subtle.sign(ecdsaParams, tokenKey.data!, String.UTF8.encode(data));
     if (!signature.data)
         return ApiResult.Error<string>(`can't sign the token`);
 

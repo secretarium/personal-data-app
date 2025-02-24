@@ -55,11 +55,6 @@ export function createTokenApi(deviceId: string, utcNow: u64, input: CreateToken
     if (!user)
         return ApiResult.Error<string>(`access denied`);
 
-    // Load token identity
-    let tokenKey = Crypto.Subtle.loadKey("auth-token-identity");
-    if (!tokenKey.data)
-        return ApiResult.Error<string>(`can load token identity`);
-
     // Create token
-    return create(user.userId, tokenKey.data!, input.vendorId, utcNow, input.lifespan);;
+    return create(user.userId, input.vendorId, utcNow, input.lifespan);
 }

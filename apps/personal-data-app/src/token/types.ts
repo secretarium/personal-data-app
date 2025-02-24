@@ -1,6 +1,5 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-
 @json
 export class VerifyTokenInput {
     token: string = "";
