@@ -11,11 +11,15 @@ export class ChallengeVerificationResult {
 @json
 export class UserVerifiableAttribute {
     value: string = "";
-    challenge: string = "";
-    attempts: Array<u64> = new Array<u64>();
     verified: boolean = false;
     verifiers: Array<string> = new Array<string>();
     lastVerificationTime: u64 = 0;
+}
+
+@json
+export class UserChallengeableAttribute extends UserVerifiableAttribute {
+    challenge: string = "";
+    attempts: Array<u64> = new Array<u64>();
 
     getLockedUntil() : u64 {
 

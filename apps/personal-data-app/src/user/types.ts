@@ -1,15 +1,22 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
 import { JSON, Ledger } from '@klave/sdk';
-import { UserVerifiableAttribute } from './data/types';
 import { TBLE_NAMES } from '../../config';
+import { UserChallengeableAttribute, UserVerifiableAttribute } from './data/types';
+import { UserDevice } from './device/types';
 
+
+@json
+export class UserInfoOutput {
+    email!: UserVerifiableAttribute;
+    device!: UserDevice;
+}
 
 @json
 export class User {
     userId: string = ""; // base 64 encoded
     deviceId: string = ""; // base 64 encoded
-    email: UserVerifiableAttribute = new UserVerifiableAttribute;
+    email: UserChallengeableAttribute = new UserChallengeableAttribute;
 
     static getUser(userId: string): User | null {
 

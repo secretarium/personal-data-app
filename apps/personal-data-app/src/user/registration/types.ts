@@ -2,8 +2,9 @@
 
 import { JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../../../config';
-import { ChallengeVerificationResult, UserVerifiableAttribute } from '../data/types';
+import { ChallengeVerificationResult, UserChallengeableAttribute } from '../data/types';
 import { UserPushNotificationConfig } from '../../push-notification/types';
+import { DeviceInput } from '../device/types';
 
 
 @json
@@ -12,8 +13,7 @@ export class PreRegisterUserInput {
 }
 
 @json
-export class RegisterUserDeviceInput {
-    deviceName: string = "";
+export class RegisterUserDeviceInput extends DeviceInput {
     pushNotificationConfig: UserPushNotificationConfig = new UserPushNotificationConfig();
 }
 
@@ -41,7 +41,7 @@ export class RegisterUserOutput {
 export class RegisteringUser {
     userId: string = ""; // base 64 encoded
     deviceId: string = ""; // base 64 encoded
-    email: UserVerifiableAttribute = new UserVerifiableAttribute;
+    email: UserChallengeableAttribute = new UserChallengeableAttribute;
     time: u64 = 0;
 
     static getFromDevice(deviceId: string): RegisteringUser | null {

@@ -1,8 +1,7 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
 import { Context, Notifier, Transaction } from "@klave/sdk";
-import { User } from "./src/user/types";
-import { ApiOutcome, ApiResult } from "./types";
+import { getUserInfoApi, userDataMigrationApi } from "./src/user/apis";
 import { PushNotificationInput } from "./src/push-notification/types";
 import { sendPushNotificationApi } from "./src/push-notification/apis";
 import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput } from "./src/user/registration/types";
@@ -18,21 +17,15 @@ import { AddDeviceInput, RemoveDeviceInput } from "./src/user/device/types";
 import { addUserDeviceApi, getUserDevicesApi, removeUserDeviceApi, userDeviceMigrationApi } from "./src/user/device/apis";
 
 
+// USER APIs
+
 /**
  * @query
  **/
 export function me(): void {
-
-    // Load user
-    const user = User.getUserFromDevice(Context.get("sender"));
-    if (!user) {
-        Notifier.sendJson(ApiOutcome.Error(`unkown device`));
-        return;
-    }
-
-    Notifier.sendJson(ApiResult.Success(user.email.value));
+    const result = getUserInfoApi(Context.get("sender"));
+    Notifier.sendJson(result);
 }
-
 
 
 // REGISTRATION APIs
@@ -79,7 +72,6 @@ export function emailChallenge(): void {
 }
 
 
-
 // RECOVERY APIs
 
 /**
@@ -94,7 +86,6 @@ export function manageRecoveryFriend(input: ManageRecoveryFriendInput): void {
 }
 
 
-
 // MANAGEMENT APIs
 
 /**
@@ -107,7 +98,6 @@ export function administrate(input: AdministrateInput): void {
         Transaction.abort();
     Notifier.sendJson(result);
 }
-
 
 
 // TOKEN APIs
@@ -135,7 +125,6 @@ export function createToken(input: CreateTokenInput): void {
     const result = createTokenApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
     Notifier.sendJson(result);
 }
-
 
 
 // DEVICES APIs
@@ -172,7 +161,6 @@ export function removeDevice(input: RemoveDeviceInput): void {
 }
 
 
-
 // TEST APIs
 
 /**
@@ -184,7 +172,6 @@ export function testPushNotification(input: PushNotificationInput): void {
 }
 
 
-
 // DATA MIGRATION APIs
 
 /**
@@ -192,6 +179,16 @@ export function testPushNotification(input: PushNotificationInput): void {
  */
 export function migrateUserDevice(): void {
     const result = userDeviceMigrationApi(Context.get("sender"));
+    if (!result.success)
+        Transaction.abort();
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ */
+export function migrateUserData(): void {
+    const result = userDataMigrationApi(Context.get("sender"));
     if (!result.success)
         Transaction.abort();
     Notifier.sendJson(result);
