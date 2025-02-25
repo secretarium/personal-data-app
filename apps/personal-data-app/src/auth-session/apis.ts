@@ -3,12 +3,13 @@
 import { JSON, Ledger, Subscription } from '@klave/sdk';
 import { TBLE_NAMES } from '../../config';
 import { ApiOutcome, ApiResult } from '../../types';
-import { AuthSessionInternal, AuthSessionStatus, ConfirmAuthSessionInput, RequestAuthSessionInput } from './types';
+import { AuthSessionInternal, AuthSession, ConfirmAuthSessionInput, RequestAuthSessionInput, RenewAuthSessionInput } from './types';
 import { User } from '../user/types';
-import { create } from '../token/helpers';
+import { create, verifySignature } from '../token/helpers';
+import { pushUserNotification } from '../push-notification/helpers';
 
 
-export function getAuthSessionStatusApi(deviceId: string, utcNow: u64): ApiResult<AuthSessionStatus> {
+export function getAuthSessionApi(deviceId: string, utcNow: u64): ApiResult<AuthSession> {
 
     // Start subscription
     Subscription.setReplayStart();
@@ -17,13 +18,28 @@ export function getAuthSessionStatusApi(deviceId: string, utcNow: u64): ApiResul
 
     // Return new session if empty
     if (sessionBlob.length == 0)
-        return ApiResult.Error<AuthSessionStatus>(`session not found`);
+        return ApiResult.Error<AuthSession>(`session not found`);
 
-    // Prepare
-    let session = JSON.parse<AuthSessionInternal>(sessionBlob).toAuthSessionStatus(utcNow);
+    // Parse
+    let session = JSON.parse<AuthSessionInternal>(sessionBlob);
+
+    // Check expiry
+    if (session.time + session.lifespan < utcNow) {
+        session.status = "expired";
+        return ApiResult.Error<AuthSession>(`session has expired`);
+    }
+
+    // Return if not confirmed
+    if (session.status != "confirmed")
+        return ApiResult.Success(session.toAuthSession(utcNow));
+
+    // Create token
+    let token = create(session.userId, session.vendorId, session.time, session.lifespan);
+    if (!token.success)
+        return ApiResult.Error<AuthSession>(`can't generate session token`);
 
     // Return
-    return ApiResult.Success(session);
+    return ApiResult.Success(session.toAuthSession(utcNow, token.result!));
 }
 
 export function requestAuthSessionApi(deviceId: string, utcNow: u64, input: RequestAuthSessionInput): ApiOutcome {
@@ -39,14 +55,13 @@ export function requestAuthSessionApi(deviceId: string, utcNow: u64, input: Requ
 
     // Start session
     let session = new AuthSessionInternal();
-    session.id = deviceId; // We use the device id as session id so that only this device can get the auth token
     session.time = utcNow;
     session.vendorId = input.vendorId;
     session.lifespan = input.lifespan;
     session.status = "requested";
 
     // Update session
-    Ledger.getTable(TBLE_NAMES.SESSION).set(session.id, JSON.stringify(session));
+    Ledger.getTable(TBLE_NAMES.SESSION).set(deviceId, JSON.stringify(session));
 
     // Return
     return ApiOutcome.Success(`session requested`);
@@ -74,36 +89,45 @@ export function confirmAuthSessionApi(deviceId: string, utcNow: u64, input: Conf
         session.status = "confirmed";
         session.userId = user.userId;
     }
-    Ledger.getTable(TBLE_NAMES.SESSION).set(session.id, JSON.stringify(session));
+    Ledger.getTable(TBLE_NAMES.SESSION).set(input.sessionId, JSON.stringify(session));
 
     // Return
     return ApiOutcome.Success(`session updated to status "${session.status}"`);
 }
 
-export function getAuthSessionTokenApi(deviceId: string, utcNow: u64): ApiResult<string> {
+export function renewAuthSessionApi(deviceId: string, utcNow: u64, input: RenewAuthSessionInput): ApiOutcome {
+
+    // Verify Jwt
+    let res = verifySignature(input.token);
+    if (!res.success || !res.result)
+        return ApiOutcome.Error(`invalid token`);
+
+    // Check expiry
+    if (!res.result!.exp)
+        return ApiOutcome.Error(`invalid token expiry`);
 
     // Load session
     let sessionBlob = Ledger.getTable(TBLE_NAMES.SESSION).get(deviceId);
     if (sessionBlob.length == 0)
-        return ApiResult.Error<string>(`unkown session`);
+        return ApiOutcome.Error(`unkown session, can't renew`);
     let session = JSON.parse<AuthSessionInternal>(sessionBlob);
+    let expired = res.result!.exp >= utcNow;
 
-    // Remove it from ledger
-    Ledger.getTable(TBLE_NAMES.SESSION).unset(session.id);
+    // Update session
+    session.time = utcNow;
+    session.lifespan = input.lifespan;
+    session.status = expired ? "requested" : "confirmed";
 
-    // Check session
-    if (session.time + session.lifespan < utcNow) { // Check expiry
-        session.status = "expired";
-        return ApiResult.Error<string>(`session has expired`);
+    // If expired, we need to request a new authentication
+    if (expired) {
+        let pushNotifRes = pushUserNotification(session.userId, JSON.stringify(session.toAuthSession(utcNow)));
+        if (!pushNotifRes.success)
+            return ApiOutcome.Error(`can't request session`);
     }
-    if (session.status != "confirmed")
-        return ApiResult.Error<string>(`session has not been confirmed yet`);
 
-    // Generate token
-    let token = create(session.userId, session.vendorId, session.time, session.lifespan);
-    if (!token.success)
-        return ApiResult.Error<string>(`can't generate session token`);
+    // Update session
+    Ledger.getTable(TBLE_NAMES.SESSION).set(deviceId, JSON.stringify(session));
 
     // Return
-    return ApiResult.Success(token.result!);
+    return ApiOutcome.Success(`session updated to status "${session.status}"`);
 }

@@ -15,8 +15,8 @@ import { CreateTokenInput, VerifyTokenInput } from "./src/token/types";
 import { createTokenApi, getTokenIdentityApi, verifyTokenApi } from "./src/token/apis";
 import { AddDeviceInput, RemoveDeviceInput } from "./src/user/device/types";
 import { addUserDeviceApi, getUserDevicesApi, removeUserDeviceApi } from "./src/user/device/apis";
-import { ConfirmAuthSessionInput, RequestAuthSessionInput } from "./src/auth-session/types";
-import { confirmAuthSessionApi, getAuthSessionStatusApi, getAuthSessionTokenApi, requestAuthSessionApi } from "./src/auth-session/apis";
+import { ConfirmAuthSessionInput, RenewAuthSessionInput, RequestAuthSessionInput } from "./src/auth-session/types";
+import { confirmAuthSessionApi, getAuthSessionApi, renewAuthSessionApi, requestAuthSessionApi } from "./src/auth-session/apis";
 
 
 // USER APIs
@@ -136,8 +136,8 @@ export function createToken(input: CreateTokenInput): void {
 /**
  * @query
  **/
-export function getAuthSessionStatus(): void {
-    const result = getAuthSessionStatusApi(Context.get("sender"), u64.parse(Context.get("trusted_time")));
+export function getAuthSession(): void {
+    const result = getAuthSessionApi(Context.get("sender"), u64.parse(Context.get("trusted_time")));
     Notifier.sendJson(result);
 }
 
@@ -161,9 +161,10 @@ export function confirmAuthSession(input: ConfirmAuthSessionInput): void {
 
 /**
  * @transaction
+ * @param {RenewAuthSessionInput} input - A parsed input argument
  **/
-export function getAuthSessionToken(): void {
-    const result = getAuthSessionTokenApi(Context.get("sender"), u64.parse(Context.get("trusted_time")));
+export function renewAuthSession(input: RenewAuthSessionInput): void {
+    const result = renewAuthSessionApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
     Notifier.sendJson(result);
 }
 

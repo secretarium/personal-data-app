@@ -14,7 +14,7 @@ export function computeUserVendorId(userId: string, vendorId: string) : string {
     return Base64.encode(Uint8Array.wrap(userVendorIdHash.data!));
 }
 
-export function verify(jwtToken: string, publicKey: Crypto.CryptoKey, userId: string, vendorId: string, utcNow: u64) : ApiResult<AuthTokenJwtPayload> {
+export function verifySignature(jwtToken: string) : ApiResult<AuthTokenJwtPayload> {
 
     // Parse Jwt
     let jwtParts = jwtToken.split(".");
@@ -29,25 +29,21 @@ export function verify(jwtToken: string, publicKey: Crypto.CryptoKey, userId: st
     if (header.alg !== "ES256")
         return ApiResult.Error<AuthTokenJwtPayload>(`unsupported algorithm`);
 
+    // Load token identity
+    let tokenKey = Crypto.Subtle.loadKey("auth-token-identity");
+    if (!tokenKey.data)
+        return ApiResult.Error<AuthTokenJwtPayload>(`can't load token identity`);
+
     // Verify signature
     let ecdsaParams = { hash: "SHA2-256" } as Crypto.EcdsaParams;
     let signature = Base64.decode(jwtParts[2]);
     let payloadBytes = Base64.decode(jwtParts[1]);
-    let verify = Crypto.Subtle.verify(ecdsaParams, publicKey, payloadBytes.buffer, signature.buffer);
+    let verify = Crypto.Subtle.verify(ecdsaParams, tokenKey.data!, payloadBytes.buffer, signature.buffer);
     if (!verify.data || !verify.data!.isValid)
         return ApiResult.Error<AuthTokenJwtPayload>(`invalid singature`);
 
     // Parse payload
     let payload = JSON.parse<AuthTokenJwtPayload>(String.UTF8.decode(payloadBytes.buffer));
-
-    // Check if expired
-    if (utcNow > payload.exp)
-        return ApiResult.Error<AuthTokenJwtPayload>(`token has expired`);
-
-    // Verify vendor id
-    let expectedUserVendorId = computeUserVendorId(userId, vendorId);
-    if (expectedUserVendorId != payload.sub)
-        return ApiResult.Error<AuthTokenJwtPayload>(`incorrect vendor id`);
 
     return ApiResult.Success<AuthTokenJwtPayload>(payload);
 }

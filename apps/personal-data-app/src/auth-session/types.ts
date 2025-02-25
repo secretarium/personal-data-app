@@ -2,25 +2,27 @@
 
 
 @json
-export class AuthSessionStatus {
-    id: string = "";
+export class AuthSession {
     status: string = "";
     expiry: u64 = 0;
+    @omitif("this.token.length == 0")
+    token: string = "";
 }
 
 @json
-export class AuthSessionInternal extends AuthSessionStatus {
+export class AuthSessionInternal {
     userId: string = "";
     vendorId: string = "";
     time: u64 = 0;
     lifespan: u64 = 0;
+    status: string = "";
 
-    toAuthSessionStatus(utcNow: u64) : AuthSessionStatus {
+    toAuthSession(utcNow: u64, token: string = "") : AuthSession {
         let expiry = this.time + this.lifespan;
-        let ses = new AuthSessionStatus();
-        ses.id = this.id;
+        let ses = new AuthSession();
         ses.expiry = expiry;
         ses.status = expiry < utcNow ? "expired" : this.status;
+        ses.token = token;
         return ses;
     }
 }
@@ -36,5 +38,11 @@ export class RequestAuthSessionInput {
 export class ConfirmAuthSessionInput {
     valid: boolean = false;
     sessionId: string = "";
+    lifespan: u64 = 0;
+}
+
+@json
+export class RenewAuthSessionInput {
+    token: string = "";
     lifespan: u64 = 0;
 }

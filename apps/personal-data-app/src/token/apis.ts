@@ -3,7 +3,7 @@
 import { Crypto } from '@klave/sdk';
 import { ApiOutcome, ApiResult } from '../../types';
 import { CreateTokenInput, VerifyTokenInput } from './types';
-import { create, verify } from './helpers';
+import { computeUserVendorId, create, verifySignature } from './helpers';
 import { User } from '../user/types';
 import * as Base64 from "as-base64/assembly";
 
@@ -35,15 +35,19 @@ export function verifyTokenApi(deviceId: string, utcNow: u64, input: VerifyToken
     if (!user)
         return ApiOutcome.Error(`access denied`);
 
-    // Load token identity
-    let tokenKey = Crypto.Subtle.loadKey("auth-token-identity");
-    if (!tokenKey.data)
-        return ApiOutcome.Error(`can load token identity`);
-
-    // Verify token
-    let res = verify(input.token, tokenKey.data!, user.userId, input.vendorId, utcNow);
+    // Verify token signature
+    let res = verifySignature(input.token);
     if (!res.success)
         return ApiOutcome.Error(res.message);
+
+    // Check if expired
+    if (utcNow > res.result!.exp)
+        return ApiOutcome.Error(`token has expired`);
+
+    // Verify vendor id
+    let expectedUserVendorId = computeUserVendorId(user.userId, input.vendorId);
+    if (expectedUserVendorId != res.result!.sub)
+        return ApiOutcome.Error(`incorrect vendor id`);
 
     return ApiOutcome.Success(`token is valid`);
 }
