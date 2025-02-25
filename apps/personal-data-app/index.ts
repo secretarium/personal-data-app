@@ -15,8 +15,8 @@ import { CreateTokenInput, VerifyTokenInput } from "./src/token/types";
 import { createTokenApi, getTokenIdentityApi, verifyTokenApi } from "./src/token/apis";
 import { AddDeviceInput, RemoveDeviceInput } from "./src/user/device/types";
 import { addUserDeviceApi, getUserDevicesApi, removeUserDeviceApi } from "./src/user/device/apis";
-import { ConfirmAuthSessionInput, GetAuthSessionInput, StartAuthSessionInput } from "./src/auth-session/types";
-import { confirmAuthSessionApi, getAuthSessionApi, startAuthSessionApi } from "./src/auth-session/apis";
+import { ConfirmAuthSessionInput, RequestAuthSessionInput } from "./src/auth-session/types";
+import { confirmAuthSessionApi, getAuthSessionStatusApi, getAuthSessionTokenApi, requestAuthSessionApi } from "./src/auth-session/apis";
 
 
 // USER APIs
@@ -135,19 +135,18 @@ export function createToken(input: CreateTokenInput): void {
 
 /**
  * @query
- * @param {GetAuthSessionInput} input - A parsed input argument
  **/
-export function getAuthSession(input: GetAuthSessionInput): void {
-    const result = getAuthSessionApi(u64.parse(Context.get("trusted_time")), input);
+export function getAuthSessionStatus(): void {
+    const result = getAuthSessionStatusApi(Context.get("sender"), u64.parse(Context.get("trusted_time")));
     Notifier.sendJson(result);
 }
 
 /**
  * @transaction
- * @param {StartAuthSessionInput} input - A parsed input argument
+ * @param {RequestAuthSessionInput} input - A parsed input argument
  **/
-export function startAuthSession(input: StartAuthSessionInput): void {
-    const result = startAuthSessionApi(u64.parse(Context.get("trusted_time")), input);
+export function requestAuthSession(input: RequestAuthSessionInput): void {
+    const result = requestAuthSessionApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
     Notifier.sendJson(result);
 }
 
@@ -157,6 +156,14 @@ export function startAuthSession(input: StartAuthSessionInput): void {
  **/
 export function confirmAuthSession(input: ConfirmAuthSessionInput): void {
     const result = confirmAuthSessionApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ **/
+export function getAuthSessionToken(): void {
+    const result = getAuthSessionTokenApi(Context.get("sender"), u64.parse(Context.get("trusted_time")));
     Notifier.sendJson(result);
 }
 
