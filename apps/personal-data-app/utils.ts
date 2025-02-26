@@ -41,8 +41,11 @@ export function base64Encode<T>(obj: T, urlMode : boolean = false): string {
 }
 
 export function toUrlMode(base64: string): string {
-    base64 = base64.replaceAll("+", "-");
-    base64 = base64.replaceAll("/", "_");
-    base64 = base64.replaceAll("=", "");
-    return base64;
+    return base64.replaceAll("=", "").replaceAll("+", "-").replaceAll("/", "_");
+}
+
+export function fromUrlMode(base64: string): string {
+    base64 = base64.replaceAll("-", "+").replaceAll("_", "/");
+    const padding = base64.length % 4 === 0 ? "" : "=".repeat(4 - (base64.length % 4));
+    return base64 + padding;
 }

@@ -3,7 +3,7 @@
 import { JSON, Crypto } from '@klave/sdk';
 import { ApiResult } from '../../types';
 import { AuthTokenJwtHeader, AuthTokenJwtPayload } from './types';
-import { base64Encode, concatArrays, toUrlMode } from '../../utils';
+import { base64Encode, concatArrays, fromUrlMode, toUrlMode } from '../../utils';
 import * as Base64 from "as-base64/assembly";
 
 
@@ -22,7 +22,7 @@ export function verifySignature(jwtToken: string) : ApiResult<AuthTokenJwtPayloa
         return ApiResult.Error<AuthTokenJwtPayload>(`invalid arguments`);
 
     // Verify header parameters are the ones we support
-    let headerBytes = Base64.decode(jwtParts[0]);
+    let headerBytes = Base64.decode(fromUrlMode(jwtParts[0]));
     let header = JSON.parse<AuthTokenJwtHeader>(String.UTF8.decode(headerBytes.buffer));
     if (header.typ !== "JWT")
         return ApiResult.Error<AuthTokenJwtPayload>(`unsupported format`);
@@ -36,8 +36,8 @@ export function verifySignature(jwtToken: string) : ApiResult<AuthTokenJwtPayloa
 
     // Verify signature
     let ecdsaParams = { hash: "SHA2-256" } as Crypto.EcdsaParams;
-    let signature = Base64.decode(jwtParts[2]);
-    let payloadBytes = Base64.decode(jwtParts[1]);
+    let signature = Base64.decode(fromUrlMode(jwtParts[2]));
+    let payloadBytes = Base64.decode(fromUrlMode(jwtParts[1]));
     let verify = Crypto.Subtle.verify(ecdsaParams, tokenKey.data!, payloadBytes.buffer, signature.buffer);
     if (!verify.data || !verify.data!.isValid)
         return ApiResult.Error<AuthTokenJwtPayload>(`invalid singature`);

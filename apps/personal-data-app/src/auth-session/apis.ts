@@ -92,7 +92,7 @@ export function confirmAuthSessionApi(deviceId: string, utcNow: u64, input: Conf
     Ledger.getTable(TBLE_NAMES.SESSION).set(input.sessionId, JSON.stringify(session));
 
     // Return
-    return ApiOutcome.Success(`session updated to status "${session.status}"`);
+    return ApiOutcome.Success(`session updated to status '${session.status}'`);
 }
 
 export function renewAuthSessionApi(deviceId: string, utcNow: u64, input: RenewAuthSessionInput): ApiOutcome {
@@ -129,5 +129,5 @@ export function renewAuthSessionApi(deviceId: string, utcNow: u64, input: RenewA
     Ledger.getTable(TBLE_NAMES.SESSION).set(deviceId, JSON.stringify(session));
 
     // Return
-    return ApiOutcome.Success(`session updated to status "${session.status}"`);
+    return ApiOutcome.Success(`session updated to status '${session.status}'`);
 }
