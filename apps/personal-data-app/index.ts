@@ -17,6 +17,7 @@ import { AddDeviceInput, RemoveDeviceInput } from "./src/user/device/types";
 import { addUserDeviceApi, getUserDevicesApi, removeUserDeviceApi } from "./src/user/device/apis";
 import { ConfirmAuthSessionInput, RenewAuthSessionInput, RequestAuthSessionInput } from "./src/auth-session/types";
 import { confirmAuthSessionApi, getAuthSessionApi, renewAuthSessionApi, requestAuthSessionApi } from "./src/auth-session/apis";
+import { ApiOutcome } from "./types";
 
 
 // USER APIs
@@ -217,6 +218,13 @@ export function removeDevice(input: RemoveDeviceInput): void {
 export function testPushNotification(input: PushNotificationInput): void {
     const result = sendPushNotificationApi(Context.get("sender"), input);
     Notifier.sendJson(result);
+}
+
+/**
+ * @query
+ **/
+export function testDeviceId(): void {
+    Notifier.sendJson(ApiOutcome.Success(Context.get("sender")));
 }
 
 
