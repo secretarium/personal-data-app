@@ -11,7 +11,7 @@ import { ManageRecoveryFriendInput } from "./src/recovery/types";
 import { manageRecoveryFriendApi } from "./src/recovery/apis";
 import { AdministrateInput } from "./src/administration/types";
 import { administrateApi } from "./src/administration/apis";
-import { CreateTokenInput, VerifyTokenInput } from "./src/token/types";
+import { CreateTokenInput, GetTokenIdentityInput, VerifyTokenInput } from "./src/token/types";
 import { createTokenApi, getTokenIdentityApi, verifyTokenApi } from "./src/token/apis";
 import { AddDeviceInput, RemoveDeviceInput } from "./src/user/device/types";
 import { addUserDeviceApi, getUserDevicesApi, removeUserDeviceApi } from "./src/user/device/apis";
@@ -106,9 +106,10 @@ export function administrate(input: AdministrateInput): void {
 
 /**
  * @query
+ * @param {GetTokenIdentityInput} input - A parsed input argument
  **/
-export function getTokenIdentity(): void {
-    const result = getTokenIdentityApi();
+export function getTokenIdentity(input: GetTokenIdentityInput): void {
+    const result = getTokenIdentityApi(input);
     Notifier.sendJson(result);
 }
 
@@ -147,6 +148,8 @@ export function getAuthSession(): void {
  **/
 export function requestAuthSession(input: RequestAuthSessionInput): void {
     const result = requestAuthSessionApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
 
@@ -156,6 +159,8 @@ export function requestAuthSession(input: RequestAuthSessionInput): void {
  **/
 export function confirmAuthSession(input: ConfirmAuthSessionInput): void {
     const result = confirmAuthSessionApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
 
@@ -165,6 +170,8 @@ export function confirmAuthSession(input: ConfirmAuthSessionInput): void {
  **/
 export function renewAuthSession(input: RenewAuthSessionInput): void {
     const result = renewAuthSessionApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
 

@@ -1,6 +1,11 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
 @json
+export class GetTokenIdentityInput {
+    format: string = "raw"; // raw | spki
+}
+
+@json
 export class VerifyTokenInput {
     token: string = "";
     vendorId: string = "";

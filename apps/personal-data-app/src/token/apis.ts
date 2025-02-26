@@ -2,13 +2,13 @@
 
 import { Crypto } from '@klave/sdk';
 import { ApiOutcome, ApiResult } from '../../types';
-import { CreateTokenInput, VerifyTokenInput } from './types';
+import { CreateTokenInput, GetTokenIdentityInput, VerifyTokenInput } from './types';
 import { computeUserVendorId, create, verifySignature } from './helpers';
 import { User } from '../user/types';
 import * as Base64 from "as-base64/assembly";
 
 
-export function getTokenIdentityApi(): ApiOutcome {
+export function getTokenIdentityApi(input: GetTokenIdentityInput): ApiOutcome {
 
     // Load token identity
     let tokenKey = Crypto.Subtle.loadKey("auth-token-identity");
@@ -21,7 +21,7 @@ export function getTokenIdentityApi(): ApiOutcome {
         return ApiOutcome.Error(`can get token identity public key, error: '${pubKey.err!.message}'`);
 
     // Export public key
-    let expKey = Crypto.Subtle.exportKey("raw", pubKey.data);
+    let expKey = Crypto.Subtle.exportKey(input.format, pubKey.data);
     if (!expKey.data)
         return ApiOutcome.Error(`can export the token identity public key, error: '${expKey.err!.message}'`);
 
