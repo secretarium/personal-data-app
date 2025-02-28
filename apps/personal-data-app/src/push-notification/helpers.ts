@@ -48,13 +48,13 @@ export function pushUserNotification(userId: string, message: string) : ApiOutco
 
     // Load user push notification config
     let userNotifConfBytes = Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).get(userId);
-    if (userNotifConfBytes.length != 0)
+    if (userNotifConfBytes.length == 0)
         return ApiOutcome.error(`user push notification configuation is missing`);
     let userNotifConf = JSON.parse<UserPushNotificationConfig>(userNotifConfBytes);
 
     // Load push notification config
     let confBytes = Ledger.getTable(TBLE_NAMES.ADMIN).get("PUSH_NOTIF_CONFIG");
-    if (confBytes.length != 0)
+    if (confBytes.length == 0)
         return ApiOutcome.error(`push notification configuation is missing`);
     let notifConf = JSON.parse<PushNotificationServiceConfiguration>(confBytes);
 
