@@ -224,7 +224,7 @@ export function testPushNotification(input: PushNotificationInput): void {
  * @query
  **/
 export function testDeviceId(): void {
-    Notifier.sendJson(ApiOutcome.Success(Context.get("sender")));
+    Notifier.sendJson(ApiOutcome.success(Context.get("sender")));
 }
 
 

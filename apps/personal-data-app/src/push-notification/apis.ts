@@ -13,7 +13,7 @@ export function sendPushNotificationApi(deviceId: string, input: PushNotificatio
         ? User.getUserFromEmail(input.userEmail)
         : User.getUserFromDevice(deviceId);
     if (!user)
-        return ApiOutcome.Error(`unkown device`);
+        return ApiOutcome.error(`unkown device`);
 
     // Push notification
     return pushUserNotification(user.userId, input.message);

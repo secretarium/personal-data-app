@@ -13,23 +13,23 @@ export function emailChallengeApi(deviceId: string): ApiOutcome {
     // Load registering user
     const registeringUser = RegisteringUser.getFromDevice(deviceId);
     if (!registeringUser)
-        return ApiOutcome.Error(`unkown device`);
+        return ApiOutcome.error(`unkown device`);
 
     // Load email configuration
     let emailConfBytes = Ledger.getTable(TBLE_NAMES.ADMIN).get("EMAIL_CONFIG");
     if (emailConfBytes.length == 0)
-        return ApiOutcome.Error(`email server not configured`);
+        return ApiOutcome.error(`email server not configured`);
     let emailConf = JSON.parse<EmailServiceConfiguration>(emailConfBytes);
 
     // Load challenge email template
     let emailTemplate = Ledger.getTable(TBLE_NAMES.ADMIN).get("VERIFY_EMAIL_TEMPLATE");
     if (emailTemplate.length == 0)
-        return ApiOutcome.Error(`email template not configured`);
+        return ApiOutcome.error(`email template not configured`);
 
     // Email challenge
     emailTemplate = emailTemplate.replace("${challenge}", registeringUser.email.challenge);
     if (!sendEmail(emailConf, registeringUser.email.value, "Secretarium email verification", emailTemplate))
-        return ApiOutcome.Error(`can't send email`);
+        return ApiOutcome.error(`can't send email`);
 
-    return ApiOutcome.Success(`email sent`);
+    return ApiOutcome.success(`email sent`);
 }

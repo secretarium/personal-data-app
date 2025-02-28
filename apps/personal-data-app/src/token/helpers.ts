@@ -19,20 +19,20 @@ export function verifySignature(jwtToken: string) : ApiResult<AuthTokenJwtPayloa
     // Parse Jwt
     let jwtParts = jwtToken.split(".");
     if (jwtParts.length != 3)
-        return ApiResult.Error<AuthTokenJwtPayload>(`invalid arguments`);
+        return ApiResult.error<AuthTokenJwtPayload>(`invalid token`);
 
     // Verify header parameters are the ones we support
     let headerBytes = Base64.decode(fromUrlMode(jwtParts[0]));
     let header = JSON.parse<AuthTokenJwtHeader>(String.UTF8.decode(headerBytes.buffer));
     if (header.typ !== "JWT")
-        return ApiResult.Error<AuthTokenJwtPayload>(`unsupported format`);
+        return ApiResult.error<AuthTokenJwtPayload>(`unsupported token format`);
     if (header.alg !== "ES256")
-        return ApiResult.Error<AuthTokenJwtPayload>(`unsupported algorithm`);
+        return ApiResult.error<AuthTokenJwtPayload>(`unsupported token algorithm`);
 
     // Load token identity
     let tokenKey = Crypto.Subtle.loadKey("auth-token-identity");
     if (!tokenKey.data)
-        return ApiResult.Error<AuthTokenJwtPayload>(`can't load token identity`);
+        return ApiResult.error<AuthTokenJwtPayload>(`can't load token identity`);
 
     // Verify signature
     let ecdsaParams = { hash: "SHA2-256" } as Crypto.EcdsaParams;
@@ -40,12 +40,12 @@ export function verifySignature(jwtToken: string) : ApiResult<AuthTokenJwtPayloa
     let payloadBytes = Base64.decode(fromUrlMode(jwtParts[1]));
     let verify = Crypto.Subtle.verify(ecdsaParams, tokenKey.data!, payloadBytes.buffer, signature.buffer);
     if (!verify.data || !verify.data!.isValid)
-        return ApiResult.Error<AuthTokenJwtPayload>(`invalid singature`);
+        return ApiResult.error<AuthTokenJwtPayload>(`invalid token signature`);
 
     // Parse payload
     let payload = JSON.parse<AuthTokenJwtPayload>(String.UTF8.decode(payloadBytes.buffer));
 
-    return ApiResult.Success<AuthTokenJwtPayload>(payload);
+    return ApiResult.success<AuthTokenJwtPayload>(payload);
 }
 
 export function create(userId: string, vendorId: string, utcNow: u64, lifespan: u64 = 0) : ApiResult<string> {
@@ -53,7 +53,7 @@ export function create(userId: string, vendorId: string, utcNow: u64, lifespan: 
     // Load token identity
     let tokenKey = Crypto.Subtle.loadKey("auth-token-identity");
     if (!tokenKey.data)
-        return ApiResult.Error<string>(`can load token identity`);
+        return ApiResult.error<string>(`can't load token identity`);
 
     // Create header
     let header = new AuthTokenJwtHeader();
@@ -72,7 +72,7 @@ export function create(userId: string, vendorId: string, utcNow: u64, lifespan: 
     let ecdsaParams = { hash: "SHA2-256" } as Crypto.EcdsaParams;
     let signature = Crypto.Subtle.sign(ecdsaParams, tokenKey.data!, String.UTF8.encode(data));
     if (!signature.data)
-        return ApiResult.Error<string>(`can't sign the token`);
+        return ApiResult.error<string>(`can't sign the token`);
 
-    return ApiResult.Success(data + "." + toUrlMode(Base64.encode(Uint8Array.wrap(signature.data!))));
+    return ApiResult.success(data + "." + toUrlMode(Base64.encode(Uint8Array.wrap(signature.data!))));
 }

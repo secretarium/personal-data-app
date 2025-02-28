@@ -20,32 +20,32 @@ export function manageRecoveryFriendApi(deviceId: string, input: ManageRecoveryF
 
     // Check input
     if (input.operation != "add" && input.operation != "remove")
-        return ApiOutcome.Error(`invalid operation`);
+        return ApiOutcome.error(`invalid operation`);
 
     // Load user and user recovery config
     const user = User.getUserFromDevice(deviceId);
     if (!user)
-        return ApiOutcome.Error(`unkown device`);
+        return ApiOutcome.error(`unkown device`);
     const userRecovCfg = getUserRecoveryConfig(user.userId);
 
     // Load friend and friend recovery config
     const friend = User.getUserFromEmail(input.email);
     if (!friend)
-        return ApiOutcome.Error(`unkown friend`);
+        return ApiOutcome.error(`unkown friend`);
     const friendRecovCfg = getUserRecoveryConfig(friend.userId);
 
     // Update both configs
     if (input.operation == "add") {
         userRecovCfg.recoveryFriends.add(friend.userId);
         if (input.threshold <= 0 || input.threshold > userRecovCfg.recoveryFriends.size)
-            return ApiOutcome.Error(`invalid arguement`);
+            return ApiOutcome.error(`invalid arguement`);
         userRecovCfg.friendVettingThreshold = input.threshold;
         friendRecovCfg.recoveryFriendOf.add(user.userId);
     }
     else {
         userRecovCfg.recoveryFriends.delete(friend.userId);
         if ((input.threshold <= 0 && userRecovCfg.recoveryFriends.size > 0) || input.threshold > userRecovCfg.recoveryFriends.size)
-            return ApiOutcome.Error(`invalid arguement`);
+            return ApiOutcome.error(`invalid arguement`);
         userRecovCfg.friendVettingThreshold = input.threshold;
         friendRecovCfg.recoveryFriendOf.delete(user.userId);
     }
@@ -54,5 +54,5 @@ export function manageRecoveryFriendApi(deviceId: string, input: ManageRecoveryF
     Ledger.getTable(TBLE_NAMES.RECOVERY_CONFIG).set(user.userId, JSON.stringify<RecoveryConfig>(userRecovCfg));
     Ledger.getTable(TBLE_NAMES.RECOVERY_CONFIG).set(friend.userId, JSON.stringify<RecoveryConfig>(friendRecovCfg));
 
-    return ApiOutcome.Success(`friend added`);
+    return ApiOutcome.success(`friend added`);
 }

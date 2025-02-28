@@ -27,7 +27,7 @@ export function registerUser(
     // Register TOTP config
     let seedTOTPRnd = Crypto.getRandomValues(32);
     if (!seedTOTPRnd || seedTOTPRnd.length != 32)
-        return ApiResult.Error<RegisterUserOutput>(`unavailable random generator`);
+        return ApiResult.error<RegisterUserOutput>(`unavailable random generator`);
 
     let userTotp = new UserTOTP();
     userTotp.seed = Base64.encode(seedTOTPRnd);
@@ -46,8 +46,8 @@ export function registerUser(
 
     // Register device
     if (!addUserDevice(userId, deviceId, utcNow, input))
-        return ApiResult.Error<RegisterUserOutput>(`can't register user device`);
+        return ApiResult.error<RegisterUserOutput>(`can't register user device`);
 
     // Return
-    return ApiResult.Success<RegisterUserOutput>({ deviceId: deviceId, seedTOTP: userTotp.seed, challengeState: null });
+    return ApiResult.success<RegisterUserOutput>({ deviceId: deviceId, seedTOTP: userTotp.seed, challengeState: null });
 }

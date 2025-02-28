@@ -12,15 +12,15 @@ export function pushNotif(config: PushNotificationServiceConfiguration, userCfg:
     // Encrypt
     let aesKeyRes = Crypto.Subtle.importKey("raw", Base64.decode(userCfg.encryptionKey).buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);
     if (!aesKeyRes.data)
-        return ApiOutcome.Error(`invalid encryption key`);
+        return ApiOutcome.error(`invalid encryption key`);
     let aesKey = aesKeyRes.data as Crypto.CryptoKey;
     let iv = Crypto.getRandomValues(12);
     if (!iv)
-        return ApiOutcome.Error(`can't generate random`);
+        return ApiOutcome.error(`can't generate random`);
     let aesGcmParams = {iv : iv.buffer, additionalData : new ArrayBuffer(0), tagLength : 128} as Crypto.AesGcmParams;
     let encrypted = Crypto.Subtle.encrypt(aesGcmParams, aesKey, String.UTF8.encode(msg));
     if (!encrypted.data)
-        return ApiOutcome.Error(`can't encrypt the message`);
+        return ApiOutcome.error(`can't encrypt the message`);
     let body = Base64.encode(concatArrays(iv!, Uint8Array.wrap(encrypted.data!)));
 
     // Call API
@@ -39,9 +39,9 @@ export function pushNotif(config: PushNotificationServiceConfiguration, userCfg:
     };
     const pushResp = HTTP.request(pushReq);
     if (!pushResp || !pushResp.statusCode || pushResp.statusCode != 200)
-        return ApiOutcome.Error(`error while sending notification`);
+        return ApiOutcome.error(`error while sending notification`);
 
-    return ApiOutcome.Success(`user device succesfully notified`);
+    return ApiOutcome.success(`user device succesfully notified`);
 }
 
 export function pushUserNotification(userId: string, message: string) : ApiOutcome {
@@ -49,13 +49,13 @@ export function pushUserNotification(userId: string, message: string) : ApiOutco
     // Load user push notification config
     let userNotifConfBytes = Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).get(userId);
     if (userNotifConfBytes.length != 0)
-        return ApiOutcome.Error(`user push notification configuation is missing`);
+        return ApiOutcome.error(`user push notification configuation is missing`);
     let userNotifConf = JSON.parse<UserPushNotificationConfig>(userNotifConfBytes);
 
     // Load push notification config
     let confBytes = Ledger.getTable(TBLE_NAMES.ADMIN).get("PUSH_NOTIF_CONFIG");
     if (confBytes.length != 0)
-        return ApiOutcome.Error(`push notification configuation is missing`);
+        return ApiOutcome.error(`push notification configuation is missing`);
     let notifConf = JSON.parse<PushNotificationServiceConfiguration>(confBytes);
 
     // Push notification

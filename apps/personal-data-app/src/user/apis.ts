@@ -12,12 +12,12 @@ export function getUserInfoApi(deviceId: string): ApiResult<UserInfoOutput> {
     // Load registering user
     const user = User.getUserFromDevice(deviceId);
     if (!user)
-        return ApiResult.Error<UserInfoOutput>(`unkown device`);
+        return ApiResult.error<UserInfoOutput>(`unkown device`);
 
     // Load user device info
     let deviceBlob = Ledger.getTable(TBLE_NAMES.DEVICE).get(deviceId);
     if (deviceBlob.length == 0)
-        return ApiResult.Error<UserInfoOutput>(`can't load device data`);
+        return ApiResult.error<UserInfoOutput>(`can't load device data`);
     let device = JSON.parse<UserDevice>(deviceBlob);
 
     // Prepare result
@@ -26,5 +26,5 @@ export function getUserInfoApi(deviceId: string): ApiResult<UserInfoOutput> {
     userInfo.device = device;
 
     // Return
-    return ApiResult.Success(userInfo);
+    return ApiResult.success(userInfo);
 }
