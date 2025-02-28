@@ -37,12 +37,13 @@ export function verifySignature(jwtToken: string) : ApiResult<AuthTokenJwtPayloa
     // Verify signature
     let ecdsaParams = { hash: "SHA2-256" } as Crypto.EcdsaParams;
     let signature = Base64.decode(fromUrlMode(jwtParts[2]));
-    let payloadBytes = Base64.decode(fromUrlMode(jwtParts[1]));
-    let verify = Crypto.Subtle.verify(ecdsaParams, tokenKey.data!, payloadBytes.buffer, signature.buffer);
+    let signedData = jwtParts[0] + "." + jwtParts[1];
+    let verify = Crypto.Subtle.verify(ecdsaParams, tokenKey.data!, String.UTF8.encode(signedData), signature.buffer);
     if (!verify.data || !verify.data!.isValid)
         return ApiResult.error<AuthTokenJwtPayload>(`invalid token signature`);
 
     // Parse payload
+    let payloadBytes = Base64.decode(fromUrlMode(jwtParts[1]));
     let payload = JSON.parse<AuthTokenJwtPayload>(String.UTF8.decode(payloadBytes.buffer));
 
     return ApiResult.success<AuthTokenJwtPayload>(payload);
@@ -57,7 +58,7 @@ export function create(userId: string, vendorId: string, utcNow: u64, lifespan: 
 
     // Create header
     let header = new AuthTokenJwtHeader();
-    let headerB64 = toUrlMode(base64Encode(header));
+    let headerB64 = base64Encode(header, true);
 
     // Create payload
     let payload = new AuthTokenJwtPayload();
