@@ -111,7 +111,7 @@ export function renewAuthSessionApi(deviceId: string, utcNow: u64, input: RenewA
     if (sessionBlob.length == 0)
         return ApiOutcome.error(`unkown session, can't renew`);
     let session = JSON.parse<AuthSessionInternal>(sessionBlob);
-    let expired = res.result!.exp >= utcNow;
+    let expired = res.result!.exp < utcNow;
 
     // Update session
     session.time = utcNow;

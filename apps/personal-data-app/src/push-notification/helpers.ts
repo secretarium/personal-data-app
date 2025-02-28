@@ -38,7 +38,7 @@ export function pushNotif(config: PushNotificationServiceConfiguration, userCfg:
         body: JSON.stringify<ExpoPushNotificationObject>({ to: userCfg.token, body: body })
     };
     const pushResp = HTTP.request(pushReq);
-    if (!pushResp || !pushResp.statusCode || pushResp.statusCode != 200)
+    if (!pushResp || !pushResp.statusCode || pushResp.statusCode != 201)
         return ApiOutcome.error(`error while sending notification`);
 
     return ApiOutcome.success(`user device succesfully notified`);
