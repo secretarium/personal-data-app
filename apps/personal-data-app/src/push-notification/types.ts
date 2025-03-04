@@ -22,3 +22,8 @@ export class ExpoPushNotificationObject {
     to!: string;
     body!: string;
 }
+
+@json
+export class PushNotificationArgs<T> {
+    constructor(public type: string, public args: T) {}
+}

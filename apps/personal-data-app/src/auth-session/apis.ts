@@ -7,6 +7,7 @@ import { AuthSessionInternal, AuthSession, ConfirmAuthSessionInput, RequestAuthS
 import { User } from '../user/types';
 import { create, verifySignature } from '../token/helpers';
 import { pushUserNotification } from '../push-notification/helpers';
+import { PushNotificationArgs } from '../push-notification/types';
 
 
 export function getAuthSessionApi(deviceId: string, utcNow: u64): ApiResult<AuthSession> {
@@ -120,7 +121,8 @@ export function renewAuthSessionApi(deviceId: string, utcNow: u64, input: RenewA
 
     // If expired, we need to request a new authentication
     if (expired) {
-        let pushNotifRes = pushUserNotification(session.userId, JSON.stringify(session.toAuthSession(utcNow)));
+        let pushNotifArgs = new PushNotificationArgs("renewAuthSession", session.toAuthSession(utcNow));
+        let pushNotifRes = pushUserNotification(session.userId, pushNotifArgs);
         if (!pushNotifRes.success)
             return pushNotifRes;
     }

@@ -2,12 +2,12 @@
 
 import { JSON, HTTP, HttpRequest, Crypto, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../../config';
-import { UserPushNotificationConfig, ExpoPushNotificationObject, PushNotificationServiceConfiguration } from './types';
+import { UserPushNotificationConfig, ExpoPushNotificationObject, PushNotificationServiceConfiguration, PushNotificationArgs } from './types';
 import { concatArrays } from '../../utils';
 import { ApiOutcome } from '../../types';
 import * as Base64 from "as-base64/assembly";
 
-export function pushNotif(config: PushNotificationServiceConfiguration, userCfg: UserPushNotificationConfig, msg: string): ApiOutcome {
+function pushNotif(config: PushNotificationServiceConfiguration, userCfg: UserPushNotificationConfig, msg: string): ApiOutcome {
 
     // Encrypt
     let aesKeyRes = Crypto.Subtle.importKey("raw", Base64.decode(userCfg.encryptionKey).buffer, {length: 128} as Crypto.AesKeyGenParams, true, ["encrypt", "decrypt"]);
@@ -44,7 +44,7 @@ export function pushNotif(config: PushNotificationServiceConfiguration, userCfg:
     return ApiOutcome.success(`user device succesfully notified`);
 }
 
-export function pushUserNotification(userId: string, message: string) : ApiOutcome {
+export function pushUserNotification<T>(userId: string, message: PushNotificationArgs<T>) : ApiOutcome {
 
     // Load user push notification config
     let userNotifConfBytes = Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).get(userId);
@@ -59,5 +59,5 @@ export function pushUserNotification(userId: string, message: string) : ApiOutco
     let notifConf = JSON.parse<PushNotificationServiceConfiguration>(confBytes);
 
     // Push notification
-    return pushNotif(notifConf, userNotifConf, message);
+    return pushNotif(notifConf, userNotifConf, JSON.stringify(message));
 }

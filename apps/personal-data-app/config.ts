@@ -13,6 +13,8 @@ export class TBLE_NAMES {
     static DEVICE_USER : string  = "DEVICE_USER";
     static SESSION : string  = "SESSION";
     static RECOVERY_CONFIG : string  = "RECOVERY_CONFIG";
+    static RECOVERING_USER : string  = "RECOVERING_USER";
+    static RECOVERING_SESSION : string  = "RECOVERING_SESSION";
     static ADMIN : string  = "ADMIN";
     static BLACKLIST : string  = "BLACKLIST";
 }

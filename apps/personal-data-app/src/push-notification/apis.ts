@@ -1,6 +1,6 @@
 // Copyright 2025 Secretarium Ltd <contact@secretarium.org>
 
-import { PushNotificationInput } from './types';
+import { PushNotificationArgs, PushNotificationInput } from './types';
 import { pushUserNotification } from './helpers';
 import { User } from '../user/types';
 import { ApiOutcome } from '../../types';
@@ -16,5 +16,6 @@ export function sendPushNotificationApi(deviceId: string, input: PushNotificatio
         return ApiOutcome.error(`unkown device`);
 
     // Push notification
-    return pushUserNotification(user.userId, input.message);
+    let pushNotifArgs = new PushNotificationArgs("test", input.message);
+    return pushUserNotification(user.userId, pushNotifArgs);
 }

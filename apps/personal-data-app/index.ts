@@ -4,11 +4,11 @@ import { Context, Notifier, Transaction } from "@klave/sdk";
 import { getUserInfoApi } from "./src/user/apis";
 import { PushNotificationInput } from "./src/push-notification/types";
 import { sendPushNotificationApi } from "./src/push-notification/apis";
-import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput } from "./src/user/registration/types";
+import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput, RegisteringUser } from "./src/user/registration/types";
 import { preRegisterUserApi, registerUserApi, registerOwnerApi } from "./src/user/registration/apis";
-import { emailChallengeApi } from "./src/email/apis";
-import { ManageRecoveryFriendInput } from "./src/recovery/types";
-import { manageRecoveryFriendApi } from "./src/recovery/apis";
+import { challengeEmailApi } from "./src/email/apis";
+import { InitiateRecoveryInput, ManageRecoveryFriendInput, RecoveringUser, RecoverUserInput } from "./src/recovery/types";
+import { initiateRecoveryApi, manageRecoveryFriendApi, notifyRecoveryFriendsApi, recoverUserApi } from "./src/recovery/apis";
 import { AdministrateInput } from "./src/administration/types";
 import { administrateApi } from "./src/administration/apis";
 import { CreateTokenInput, GetTokenIdentityInput, VerifyTokenInput } from "./src/token/types";
@@ -69,8 +69,15 @@ export function registerOwner(input: RegisterOwnerInput): void {
 /**
  * @query
  **/
-export function emailChallenge(): void {
-    const result = emailChallengeApi(Context.get("sender"));
+export function challengeRegisteringUserEmail(): void {
+
+    // Load registering user
+    const registeringUser = RegisteringUser.getFromDevice(Context.get("sender"));
+    if (!registeringUser)
+        Notifier.sendJson(ApiOutcome.error(`unkown device`));
+
+    // Challenge
+    const result = challengeEmailApi(registeringUser!.email);
     Notifier.sendJson(result);
 }
 
@@ -85,6 +92,51 @@ export function manageRecoveryFriend(input: ManageRecoveryFriendInput): void {
     const result = manageRecoveryFriendApi(Context.get("sender"), input);
     if (!result.success)
         Transaction.abort();
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ * @param {InitiateRecoveryInput} input - A parsed input argument
+ */
+export function initiateRecovery(input: InitiateRecoveryInput): void {
+    const result = initiateRecoveryApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
+    Notifier.sendJson(result);
+}
+
+/**
+ * @query
+ **/
+export function challengeRecoveringUserEmail(): void {
+
+    // Load registering user
+    const recoveringUser = RecoveringUser.getFromDevice(Context.get("sender"));
+    if (!recoveringUser)
+        Notifier.sendJson(ApiOutcome.error(`unkown device`));
+
+    // Challenge
+    const result = challengeEmailApi(recoveringUser!.email);
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ * @param {RecoverUserInput} input - A parsed input argument
+ */
+export function recoverUser(input: RecoverUserInput): void {
+    const result = recoverUserApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
+    Notifier.sendJson(result);
+}
+
+/**
+ * @query
+ **/
+export function notifyRecoveryFriends(): void {
+    const result = notifyRecoveryFriendsApi(Context.get("sender"));
     Notifier.sendJson(result);
 }
 
@@ -133,7 +185,7 @@ export function createToken(input: CreateTokenInput): void {
 }
 
 
-// AUTH SESSION
+// AUTH SESSION APIs
 
 /**
  * @query
