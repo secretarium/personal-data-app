@@ -8,7 +8,7 @@ import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput, Registerin
 import { preRegisterUserApi, registerUserApi, registerOwnerApi } from "./src/user/registration/apis";
 import { challengeEmailApi } from "./src/email/apis";
 import { InitiateRecoveryInput, ManageRecoveryFriendInput, RecoveringFriendResponseInput, RecoveringUser, RecoverUserInput, RecoveryNotifyFriendsInput } from "./src/recovery/types";
-import { initiateRecoveryApi, manageRecoveryFriendApi, notifyRecoveryFriendsApi, recoveringFriendResponseApi, recoverUserApi } from "./src/recovery/apis";
+import { getRecoveryConfigApi, initiateRecoveryApi, manageRecoveryFriendApi, notifyRecoveryFriendsApi, recoveringFriendResponseApi, recoverUserApi } from "./src/recovery/apis";
 import { AdministrateInput } from "./src/administration/types";
 import { administrateApi } from "./src/administration/apis";
 import { CreateTokenInput, GetTokenIdentityInput, VerifyTokenInput } from "./src/token/types";
@@ -83,6 +83,14 @@ export function challengeRegisteringUserEmail(): void {
 
 
 // RECOVERY APIs
+
+/**
+ * @query
+ **/
+export function getRecoveryConfig(): void {
+    const result = getRecoveryConfigApi(Context.get("sender"));
+    Notifier.sendJson(result);
+}
 
 /**
  * @transaction

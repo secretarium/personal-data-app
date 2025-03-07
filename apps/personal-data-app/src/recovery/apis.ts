@@ -3,7 +3,7 @@
 import { Crypto, JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../../config';
 import { ApiOutcome, ApiResult } from '../../types';
-import { InitiateRecoveryInput, ManageRecoveryFriendInput, RecoveringFriendResponseInput, RecoveringSession, RecoveringUser, RecoverUserInput, RecoverUserOutput, RecoveryConfig, RecoveryNotifToFriend, RecoveryNotifyFriendsInput } from './types';
+import { InitiateRecoveryInput, ManageRecoveryFriendInput, RecoveringFriendResponseInput, RecoveringSession, RecoveringUser, RecoverUserInput, RecoverUserOutput, RecoveryConfig, RecoveryConfigOutput, RecoveryNotifToFriend, RecoveryNotifyFriendsInput } from './types';
 import { User } from '../user/types';
 import { checkEmailAddress } from '../email/helpers';
 import { hexEncode } from '../../utils';
@@ -21,6 +21,31 @@ function getUserRecoveryConfig(userId: string): RecoveryConfig {
         return new RecoveryConfig();
 
     return JSON.parse<RecoveryConfig>(value);
+}
+
+export function getRecoveryConfigApi(deviceId: string): ApiResult<RecoveryConfigOutput> {
+
+    // Load user
+    const user = User.getUserFromDevice(deviceId);
+    if (!user)
+        return ApiResult.error<RecoveryConfigOutput>(`unkown device`);
+
+    // Load recovery config
+    const config = getUserRecoveryConfig(user.userId);
+
+    // Prepare
+    let output = new RecoveryConfigOutput();
+    output.threshold = config.friendVettingThreshold;
+    let friendUserIds = config.recoveryFriends.values();
+    for (let i = 0; i < friendUserIds.length; i++) {
+        const friend = User.getUser(friendUserIds[i]);
+        if (!friend)
+            return ApiResult.error<RecoveryConfigOutput>(`unkown friend`);
+        output.friends.add(friend.email.value);
+    }
+
+    // Return
+    return ApiResult.success(output);
 }
 
 export function manageRecoveryFriendApi(deviceId: string, input: ManageRecoveryFriendInput): ApiOutcome {

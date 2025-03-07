@@ -43,6 +43,12 @@ export class RecoveryConfig {
 }
 
 @json
+export class RecoveryConfigOutput {
+    friends: Set<string> = new Set<string>(); // User chosen friends for recovery procedure
+    threshold: number = 0;
+}
+
+@json
 export class RecoveringUser {
     sessionId: string = ""; // base 64 encoded
     email: UserChallengeableAttribute = new UserChallengeableAttribute;
