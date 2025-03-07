@@ -51,6 +51,16 @@ export class ApiResult<T> extends ApiOutcome {
         return apiRes;
     }
 
+    static from<T>(outcome: ApiOutcome, result: T | null = null) : ApiResult<T> {
+
+        let apiRes  = new ApiResult<T>();
+        apiRes.success = outcome.success;
+        apiRes.message = outcome.message;
+        apiRes.code = outcome.code;
+        apiRes.result = result;
+        return apiRes;
+    }
+
     to<T>(result: T | null = null) : ApiResult<T> {
 
         let apiRes  = new ApiResult<T>();

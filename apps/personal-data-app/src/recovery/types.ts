@@ -3,7 +3,7 @@
 import { JSON, Ledger } from "@klave/sdk";
 import { TBLE_NAMES } from "../../config";
 import { ChallengeVerificationResult, UserChallengeableAttribute } from "../user/data/types";
-import { UserPushNotificationConfig } from '../push-notification/types';
+import { RegisterUserInput } from "../user/registration/types";
 
 @json
 export class ManageRecoveryFriendInput {
@@ -19,8 +19,8 @@ export class InitiateRecoveryInput {
 
 @json
 export class RecoverUserInput {
-    emailChallenge: string = "";
-    pushNotificationConfig: UserPushNotificationConfig = new UserPushNotificationConfig();
+    sessionId: string = ""; // base 64 encoded
+    registration: RegisterUserInput = new RegisterUserInput();
 }
 
 @json
@@ -31,6 +31,7 @@ export class RecoverUserOutput {
 
 @json
 export class RecoveryNotifToFriend {
+    sessionId: string = ""; // base 64 encoded
     email: string = "";
 }
 
@@ -43,7 +44,7 @@ export class RecoveryConfig {
 
 @json
 export class RecoveringUser {
-    deviceId: string = ""; // temporary, base 64 encoded
+    sessionId: string = ""; // base 64 encoded
     email: UserChallengeableAttribute = new UserChallengeableAttribute;
     time: u64 = 0;
 
@@ -59,8 +60,21 @@ export class RecoveringUser {
 
 @json
 export class RecoveringSession {
+    sessionId: string = ""; // base 64 encoded
     userId: string = ""; // base 64 encoded
+    deviceId: string = ""; // base 64 encoded
     friendsResponses: Map<string, boolean> = new Map<string, boolean>();
-    pushNotificationConfig: UserPushNotificationConfig = new UserPushNotificationConfig();
+    registration: RegisterUserInput = new RegisterUserInput();
     time: u64 = 0;
+}
+
+@json
+export class RecoveryNotifyFriendsInput {
+    sessionId: string = ""; // base 64 encoded
+}
+
+@json
+export class RecoveringFriendResponseInput {
+    sessionId: string = ""; // base 64 encoded
+    approved: boolean = false;
 }

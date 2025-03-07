@@ -21,6 +21,7 @@ export class UserDevice {
     name: string = "";
     publicKeyHash: string = ""; // base 64 encoded
     time: u64 = 0;
+    disabled: boolean = false;
     @omitif("this.attributes.size == 0")
     attributes: Map<string, string> = new Map<string, string>();
 }

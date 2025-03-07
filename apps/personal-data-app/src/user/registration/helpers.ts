@@ -2,8 +2,8 @@
 
 import { Crypto, JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../../../config';
-import { ApiResult } from '../../../types';
-import { RegisterUserDeviceInput, RegisterUserOutput } from './types';
+import { ApiOutcome, ApiResult } from '../../../types';
+import { RegisterUserDeviceInput, RegisterUserInput, RegisterUserOutput } from './types';
 import { User } from '../types';
 import { UserTOTP } from '../../totp/types';
 import { UserPushNotificationConfig } from '../../push-notification/types';
@@ -11,6 +11,23 @@ import { UserData, UserChallengeableAttribute } from '../data/types';
 import { addUserDevice } from '../device/helpers';
 import * as Base64 from "as-base64/assembly";
 
+
+export function verifyRegisterUserInputs(input: RegisterUserInput): ApiOutcome {
+
+    if (!input.deviceName)
+        return ApiOutcome.error(`missing device name`);
+
+    if (!input.emailChallenge)
+        return ApiOutcome.error(`missing email challenge`);
+
+    if (!input.pushNotificationConfig || !input.pushNotificationConfig.token)
+        return ApiOutcome.error(`missing push notification config`);
+
+    if (!input.pushNotificationConfig.encryptionKey || Base64.decode(input.pushNotificationConfig.encryptionKey).length != 16)
+        return ApiOutcome.error(`invalid push notification encryption key`);
+
+    return ApiOutcome.success();
+}
 
 export function registerUser(
     userId: string, deviceId: string, email: UserChallengeableAttribute,
@@ -34,10 +51,7 @@ export function registerUser(
     Ledger.getTable(TBLE_NAMES.USER_TOTP).set(userId, JSON.stringify<UserTOTP>(userTotp));
 
     // Register push notification config
-    let userPushNotif = new UserPushNotificationConfig();
-    userPushNotif.encryptionKey = input.pushNotificationConfig.encryptionKey;
-    userPushNotif.token = input.pushNotificationConfig.token;
-    Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).set(userId, JSON.stringify<UserPushNotificationConfig>(userPushNotif));
+    Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).set(userId, JSON.stringify<UserPushNotificationConfig>(input.pushNotificationConfig));
 
     // Register user data
     let userData = new UserData();

@@ -3,12 +3,14 @@
 import { Crypto, JSON, Ledger } from '@klave/sdk';
 import { TBLE_NAMES } from '../../config';
 import { ApiOutcome, ApiResult } from '../../types';
-import { InitiateRecoveryInput, ManageRecoveryFriendInput, RecoveringSession, RecoveringUser, RecoverUserInput, RecoverUserOutput, RecoveryConfig, RecoveryNotifToFriend } from './types';
+import { InitiateRecoveryInput, ManageRecoveryFriendInput, RecoveringFriendResponseInput, RecoveringSession, RecoveringUser, RecoverUserInput, RecoverUserOutput, RecoveryConfig, RecoveryNotifToFriend, RecoveryNotifyFriendsInput } from './types';
 import { User } from '../user/types';
 import { checkEmailAddress } from '../email/helpers';
 import { hexEncode } from '../../utils';
 import { pushUserNotification } from '../push-notification/helpers';
-import { PushNotificationArgs } from '../push-notification/types';
+import { PushNotificationArgs, UserPushNotificationConfig } from '../push-notification/types';
+import { addUserDevice, disableAllUserDevices } from '../user/device/helpers';
+import { verifyRegisterUserInputs } from '../user/registration/helpers';
 import * as Base64 from "as-base64/assembly";
 
 
@@ -76,7 +78,10 @@ export function initiateRecoveryApi(deviceId: string, utcNow: u64, input: Initia
         return ApiOutcome.error(`email is not recoverable`);
 
     // Check if device public key hash is already registered
-    let deviceBlob = Ledger.getTable(TBLE_NAMES.RECOVERING_USER).get(deviceId);
+    let recoveringDevBlob = Ledger.getTable(TBLE_NAMES.RECOVERING_USER).get(deviceId);
+    if (recoveringDevBlob.length != 0)
+        return ApiOutcome.error(`recovery device already registered`);
+    let deviceBlob = Ledger.getTable(TBLE_NAMES.DEVICE).get(deviceId);
     if (deviceBlob.length != 0)
         return ApiOutcome.error(`device already registered`);
 
@@ -92,7 +97,10 @@ export function initiateRecoveryApi(deviceId: string, utcNow: u64, input: Initia
 
     // Create an account for this user
     let user = new RecoveringUser();
-    user.deviceId = deviceId;
+    let sessionIdRnd = Crypto.getRandomValues(32);
+    if (!sessionIdRnd || sessionIdRnd.length != 32)
+        return ApiOutcome.error(`unavailable random generator`);
+    user.sessionId = Base64.encode(sessionIdRnd);
     user.time = utcNow;
     user.email.value = input.email;
     let emailChallengeRnd = Crypto.getRandomValues(8);
@@ -108,23 +116,19 @@ export function initiateRecoveryApi(deviceId: string, utcNow: u64, input: Initia
 export function recoverUserApi(deviceId: string, utcNow: u64, input: RecoverUserInput): ApiResult<RecoverUserOutput> {
 
     // Verify inputs
-    if (!input.pushNotificationConfig || !input.pushNotificationConfig.token)
-        return ApiResult.error<RecoverUserOutput>(`missing push notification config`);
-    if (!input.pushNotificationConfig.encryptionKey || Base64.decode(input.pushNotificationConfig.encryptionKey).length != 16)
-        return ApiResult.error<RecoverUserOutput>(`invalid push notification encryption key`);
+    if (!input.sessionId || input.sessionId.length == 0)
+        return ApiResult.error<RecoverUserOutput>(`missing session id`);
+    let inputVerification = verifyRegisterUserInputs(input.registration);
+    if (!inputVerification.success)
+        return ApiResult.from<RecoverUserOutput>(inputVerification);
 
     // Load recovering user
     const recoveringUser = RecoveringUser.getFromDevice(deviceId);
     if (!recoveringUser)
         return ApiResult.error<RecoverUserOutput>(`unkown device`);
 
-    // Check if email is already used
-    let userBlob = Ledger.getTable(TBLE_NAMES.USER_EMAIL).get(recoveringUser.email.value);
-    if (userBlob.length == 0)
-        return ApiResult.error<RecoverUserOutput>(`email is not recoverable`);
-
     // Validate email challenge
-    let verificationResult = recoveringUser.email.verifyChallenge(utcNow, input.emailChallenge);
+    let verificationResult = recoveringUser.email.verifyChallenge(utcNow, input.registration.emailChallenge);
     let output = new RecoverUserOutput();
     output.challengeState = verificationResult;
 
@@ -141,10 +145,12 @@ export function recoverUserApi(deviceId: string, utcNow: u64, input: RecoverUser
 
     // Email is verified, we can create a session that will be used to monitor the responses of the user's friends
     let session = new RecoveringSession();
+    session.sessionId = input.sessionId;
     session.userId = userToRecover.userId;
+    session.deviceId = deviceId;
     session.time = utcNow;
-    session.pushNotificationConfig = input.pushNotificationConfig;
-    Ledger.getTable(TBLE_NAMES.RECOVERING_SESSION).set(deviceId, JSON.stringify<RecoveringSession>(session));
+    session.registration = input.registration;
+    Ledger.getTable(TBLE_NAMES.RECOVERING_SESSION).set(input.sessionId, JSON.stringify<RecoveringSession>(session));
 
     // Remove recovering user
     Ledger.getTable(TBLE_NAMES.RECOVERING_USER).unset(deviceId);
@@ -153,38 +159,95 @@ export function recoverUserApi(deviceId: string, utcNow: u64, input: RecoverUser
     return ApiResult.success<RecoverUserOutput>(output);
 }
 
-export function notifyRecoveryFriendsApi(deviceId: string): ApiOutcome {
+export function notifyRecoveryFriendsApi(deviceId: string, input: RecoveryNotifyFriendsInput): ApiOutcome {
 
     // Load recovering session
-    const recoveringSessionBlob = Ledger.getTable(TBLE_NAMES.RECOVERING_SESSION).get(deviceId);
+    const recoveringSessionBlob = Ledger.getTable(TBLE_NAMES.RECOVERING_SESSION).get(input.sessionId);
     if (recoveringSessionBlob.length == 0)
-        return ApiResult.error<RecoverUserOutput>(`unkown device`);
+        return ApiOutcome.error(`unkown session`);
     const recoveringSession = JSON.parse<RecoveringSession>(recoveringSessionBlob);
+    if (deviceId != recoveringSession.deviceId)
+        return ApiOutcome.error(`unkown device`);
 
     // Load user to recover
     const userToRecover = User.getUser(recoveringSession.userId);
     if (!userToRecover)
-        return ApiResult.error<RecoverUserOutput>(`unkown user`);
+        return ApiOutcome.error(`unkown user`);
 
     // Load user recovery config
     const userRecovCfg = getUserRecoveryConfig(userToRecover.userId);
     if (userRecovCfg.recoveryFriends.size == 0)
-        return ApiResult.error<RecoverUserOutput>(`recovery config is empty, can't recover`);
+        return ApiOutcome.error(`recovery config is empty, can't recover`);
 
     // Notify friends
     let friendUserIds = userRecovCfg.recoveryFriends.values();
     for (let i = 0; i < friendUserIds.length; i++) {
         const friend = User.getUser(friendUserIds[i]);
         if (!friend)
-            return ApiResult.error<RecoverUserOutput>(`unkown friend`);
+            return ApiOutcome.error(`unkown friend`);
         let notif = new RecoveryNotifToFriend();
         notif.email = userToRecover.email.value;
+        notif.sessionId = input.sessionId;
         let pushNotifArgs = new PushNotificationArgs("friendRecovery", notif);
         let pushNotifRes = pushUserNotification(friend.userId, pushNotifArgs);
         if (!pushNotifRes.success)
-            return ApiResult.error<RecoverUserOutput>(`can't notify friend`);
+            return ApiOutcome.error(`can't notify friend`);
     }
 
     // Return
     return ApiOutcome.success(`friends have been notified`);
+}
+
+export function recoveringFriendResponseApi(deviceId: string, utcNow: u64, input: RecoveringFriendResponseInput): ApiOutcome {
+
+    // Load friend
+    const friend = User.getUserFromDevice(deviceId);
+    if (!friend)
+        return ApiOutcome.error(`unkown device`);
+
+    // Load recovering session
+    const sessionBlob = Ledger.getTable(TBLE_NAMES.RECOVERING_SESSION).get(input.sessionId);
+    if (sessionBlob.length == 0)
+        return ApiOutcome.error(`unkown session`);
+    const session = JSON.parse<RecoveringSession>(sessionBlob);
+
+    // Update session
+    session.friendsResponses.set(friend.userId, input.approved);
+    let counter = 0;
+    let responses = session.friendsResponses.values();
+    for (let i = 0; i < responses.length; i++) {
+        if (responses[i])
+            counter++;
+    }
+    Ledger.getTable(TBLE_NAMES.RECOVERING_SESSION).set(input.sessionId, JSON.stringify<RecoveringSession>(session));
+
+    // Load user recovery config
+    const recoveryCfgBlob = Ledger.getTable(TBLE_NAMES.RECOVERY_CONFIG).get(session.userId);
+    if (recoveryCfgBlob.length == 0)
+        return ApiOutcome.error(`unkown recovery config`);
+    const recoveryCfg = JSON.parse<RecoveryConfig>(recoveryCfgBlob);
+
+    // Check threshold
+    if (counter < recoveryCfg.friendVettingThreshold)
+        return ApiOutcome.success(`response registered`);
+
+    // User has received sufficient positive responses from friends, we can restore the account
+    const user = User.getUser(session.userId);
+    if (!user)
+        return ApiOutcome.error(`unkown user`);
+
+    // Update user push notification config
+    let userPushNotif = new UserPushNotificationConfig();
+    userPushNotif.encryptionKey = session.registration.pushNotificationConfig.encryptionKey;
+    userPushNotif.token = session.registration.pushNotificationConfig.token;
+    Ledger.getTable(TBLE_NAMES.USER_PUSH_NOTIF).set(session.userId, JSON.stringify<UserPushNotificationConfig>(session.registration.pushNotificationConfig));
+
+    // Update devices
+    if (!disableAllUserDevices(user.userId))
+        return ApiOutcome.error(`can't disable user devices`);
+    if (!addUserDevice(user.userId, session.deviceId, utcNow, session.registration))
+        return ApiOutcome.error(`can't register user device`);
+
+    // Return
+    return ApiOutcome.success(`response registered, account recovered`);
 }

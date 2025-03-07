@@ -7,8 +7,8 @@ import { sendPushNotificationApi } from "./src/push-notification/apis";
 import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput, RegisteringUser } from "./src/user/registration/types";
 import { preRegisterUserApi, registerUserApi, registerOwnerApi } from "./src/user/registration/apis";
 import { challengeEmailApi } from "./src/email/apis";
-import { InitiateRecoveryInput, ManageRecoveryFriendInput, RecoveringUser, RecoverUserInput } from "./src/recovery/types";
-import { initiateRecoveryApi, manageRecoveryFriendApi, notifyRecoveryFriendsApi, recoverUserApi } from "./src/recovery/apis";
+import { InitiateRecoveryInput, ManageRecoveryFriendInput, RecoveringFriendResponseInput, RecoveringUser, RecoverUserInput, RecoveryNotifyFriendsInput } from "./src/recovery/types";
+import { initiateRecoveryApi, manageRecoveryFriendApi, notifyRecoveryFriendsApi, recoveringFriendResponseApi, recoverUserApi } from "./src/recovery/apis";
 import { AdministrateInput } from "./src/administration/types";
 import { administrateApi } from "./src/administration/apis";
 import { CreateTokenInput, GetTokenIdentityInput, VerifyTokenInput } from "./src/token/types";
@@ -111,7 +111,7 @@ export function initiateRecovery(input: InitiateRecoveryInput): void {
  **/
 export function challengeRecoveringUserEmail(): void {
 
-    // Load registering user
+    // Load recovering user
     const recoveringUser = RecoveringUser.getFromDevice(Context.get("sender"));
     if (!recoveringUser)
         Notifier.sendJson(ApiOutcome.error(`unkown device`));
@@ -134,9 +134,21 @@ export function recoverUser(input: RecoverUserInput): void {
 
 /**
  * @query
+ * @param {RecoveryNotifyFriendsInput} input - A parsed input argument
  **/
-export function notifyRecoveryFriends(): void {
-    const result = notifyRecoveryFriendsApi(Context.get("sender"));
+export function notifyRecoveryFriends(input: RecoveryNotifyFriendsInput): void {
+    const result = notifyRecoveryFriendsApi(Context.get("sender"), input);
+    Notifier.sendJson(result);
+}
+
+/**
+ * @transaction
+ * @param {RecoveringFriendResponseInput} input - A parsed input argument
+ */
+export function recoveringFriendResponse(input: RecoveringFriendResponseInput): void {
+    const result = recoveringFriendResponseApi(Context.get("sender"), u64.parse(Context.get("trusted_time")), input);
+    if (!result.success)
+        Transaction.abort();
     Notifier.sendJson(result);
 }
 

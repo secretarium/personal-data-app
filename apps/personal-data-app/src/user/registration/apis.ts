@@ -7,7 +7,7 @@ import { PreRegisterUserInput, RegisterUserInput, RegisterOwnerInput, Registerin
 import { checkEmailAddress } from '../../email/helpers';
 import { UserChallengeableAttribute, UserData } from '../data/types';
 import { hexEncode } from '../../../utils';
-import { registerUser } from './helpers';
+import { registerUser, verifyRegisterUserInputs } from './helpers';
 import { MemberRole } from '../../administration/types';
 import * as Base64 from "as-base64/assembly";
 
@@ -52,12 +52,9 @@ export function preRegisterUserApi(deviceId: string, utcNow: u64, input: PreRegi
 export function registerUserApi(deviceId: string, utcNow: u64, input: RegisterUserInput): ApiResult<RegisterUserOutput> {
 
     // Verify inputs
-    if (!input.deviceName)
-        return ApiResult.error<RegisterUserOutput>(`missing device name`);
-    if (!input.pushNotificationConfig || !input.pushNotificationConfig.token)
-        return ApiResult.error<RegisterUserOutput>(`missing push notification config`);
-    if (!input.pushNotificationConfig.encryptionKey || Base64.decode(input.pushNotificationConfig.encryptionKey).length != 16)
-        return ApiResult.error<RegisterUserOutput>(`invalid push notification encryption key`);
+    let inputVerification = verifyRegisterUserInputs(input);
+    if (!inputVerification.success)
+        return ApiResult.from<RegisterUserOutput>(inputVerification);
 
     // Load registering user
     const registeringUser = RegisteringUser.getFromDevice(deviceId);
