@@ -10,9 +10,11 @@ This app is dedicated to user authentication and personal data storage in truste
 ```preRegister``` - Transaction, registers the user email address
 
 ```json
--->  { "email": "alice@bob.com" }
+{ "email": "alice@bob.com" }
+```
 
-<--  { "success": true }
+```json
+{ "success": true }
 ```
 
 ---
@@ -20,9 +22,11 @@ This app is dedicated to user authentication and personal data storage in truste
 ```emailChallenge``` - Query, sends a challenge to the user email address for verification
 
 ```json
--->  { }
+{ }
+```
 
-<--  { "success": true }
+```json
+{ "success": true }
 ```
 
 ---
@@ -30,9 +34,11 @@ This app is dedicated to user authentication and personal data storage in truste
 ```register``` - Transaction, verifies email challenge and finalises registration
 
 ```json
--->  { "emailChallenge": "1234ABCD", "deviceName": "Name", "pushNotificationConfig": { "token": "123456789", "encryptionKey": "abcde...zyx==" } }
+{ "emailChallenge": "1234ABCD", "deviceName": "Name", "pushNotificationConfig": { "token": "123456789", "encryptionKey": "abcde...zyx==" } }
+```
 
-<--  { "success": true, "result": { "deviceId": "abcde...zyx==", "seedTOTP": "abcde...zyx==" } }
+```json
+{ "success": true, "result": { "deviceId": "abcde...zyx==", "seedTOTP": "abcde...zyx==" } }
 ```
 
 ### Account recovery configuration
@@ -42,9 +48,11 @@ This app is dedicated to user authentication and personal data storage in truste
 ```getRecoveryConfig``` - Query, get the user recovery config
 
 ```json
--->  { }
+{ }
+```
 
-<--  { "success": true, "result": { "friends": [ "chloe@bob.com", "david@bob.com", "elodie@bob.com" ], "threshold": 2 } }
+```json
+{ "success": true, "result": { "friends": [ "chloe@bob.com", "david@bob.com", "elodie@bob.com" ], "threshold": 2 } }
 ```
 
 ---
@@ -52,7 +60,9 @@ This app is dedicated to user authentication and personal data storage in truste
 ```manageRecoveryFriend``` - Transaction, add/remove a trusted friend for the account recovery process
 
 ```json
--->  { "email": "francois@bob.com", "operation": "add", "threshold": 3 }
+{ "email": "francois@bob.com", "operation": "add", "threshold": 3 }
+```
 
-<--  { "success": true }
+```json
+{ "success": true }
 ```
